@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Filter, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { productsData } from '../Home/Home';
 import ProductsSection from '../Home/sections/ProductsSection';
 import ProductModal from '../Home/sections/ProductModal';
@@ -14,9 +14,9 @@ const priceOptions = [
 ];
 
 const Shop = () => {
-  const params = new URLSearchParams(window.location.search);
-  const [search, setSearch] = useState(params.get('q') || '');
-  const [category, setCategory] = useState(params.get('category') || 'All toys');
+  const location = useLocation();
+  const search = new URLSearchParams(location.search).get('q') || '';
+  const category = new URLSearchParams(location.search).get('category') || 'All toys';
   const [priceRange, setPriceRange] = useState('all');
   const [age, setAge] = useState('all');
   const [sort, setSort] = useState('featured');
@@ -50,21 +50,25 @@ const Shop = () => {
     });
   }, [age, category, priceRange, search, sort]);
 
+  const updateSearch = (value) => {
+    const nextParams = new URLSearchParams(location.search);
+    if (value.trim()) nextParams.set('q', value);
+    else nextParams.delete('q');
+    navigate(`/shop?${nextParams.toString()}`, { replace: true });
+  };
+
   const selectCategory = (nextCategory) => {
-    setCategory(nextCategory);
-    const url = new URL(window.location.href);
-    if (nextCategory === 'All toys') url.searchParams.delete('category');
-    else url.searchParams.set('category', nextCategory);
-    window.history.pushState({}, '', url);
+    const nextParams = new URLSearchParams(location.search);
+    if (nextCategory === 'All toys') nextParams.delete('category');
+    else nextParams.set('category', nextCategory);
+    navigate(`/shop?${nextParams.toString()}`);
   };
 
   const resetFilters = () => {
-    setSearch('');
-    setCategory('All toys');
     setPriceRange('all');
     setAge('all');
     setSort('featured');
-    window.history.pushState({}, '', `${window.location.pathname}`);
+    navigate('/shop');
   };
 
   return (
@@ -76,7 +80,7 @@ const Shop = () => {
         </div>
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-          <label className="relative flex-1"><span className="sr-only">Search products</span><Search className="absolute left-4 top-3.5 h-5 w-5 text-text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search toys, skills, or adventures..." className="w-full rounded-2xl border border-border bg-surface px-4 py-3 pl-12 text-text outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100" /></label>
+          <label className="relative flex-1"><span className="sr-only">Search products</span><Search className="absolute left-4 top-3.5 h-5 w-5 text-text-muted" /><input value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Search toys, skills, or adventures..." className="w-full rounded-2xl border border-border bg-surface px-4 py-3 pl-12 text-text outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100" /></label>
           <button type="button" onClick={() => setIsFiltersOpen((value) => !value)} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-surface px-5 py-3 font-bold text-text transition hover:border-primary-300 lg:hidden"><SlidersHorizontal className="h-5 w-5" /> Filters</button>
           <label className="hidden items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2 text-sm font-bold text-text lg:flex"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)} className="bg-transparent py-1 outline-none"><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A–Z</option></select></label>
         </div>

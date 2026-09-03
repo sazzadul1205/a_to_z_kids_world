@@ -12,7 +12,7 @@ const LayoutContent = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { itemCount } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const openAuth = () => setIsAuthOpen(true);
@@ -22,7 +22,7 @@ const LayoutContent = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface text-text transition-colors duration-300">
-      <Navbar onCartClick={() => setIsCartOpen(true)} onAccountClick={() => setIsAuthOpen(true)} cartCount={itemCount} user={user} />
+      <Navbar onCartClick={() => setIsCartOpen(true)} onAccountClick={() => setIsAuthOpen(true)} onLogout={logout} cartCount={itemCount} user={user} />
       <main className="flex-1">
         <Outlet /> 
       </main>

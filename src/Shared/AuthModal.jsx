@@ -39,7 +39,7 @@ const AuthModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-text/60 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" className="relative w-full max-w-md rounded-3xl bg-surface p-6 text-text shadow-2xl sm:p-8">
+      <div role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" className="relative max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-3xl bg-surface p-5 text-text shadow-2xl sm:p-7">
         <button type="button" aria-label="Close account dialog" onClick={onClose} className="absolute right-4 top-4 rounded-full p-2 text-text-muted transition hover:bg-primary-100 hover:text-primary-700"><X className="h-5 w-5" /></button>
         {isSubmitted ? (
           <div className="py-8 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-primary-700"><UserRound className="h-7 w-7" /></div><h2 id="auth-modal-title" className="mt-5 text-2xl font-black">You&apos;re all set!</h2><p className="mt-2 text-sm leading-relaxed text-text-muted">This demo {mode === 'login' ? 'login' : 'account'} form was submitted successfully.</p><button type="button" onClick={onClose} className="mt-6 rounded-xl bg-primary-600 px-6 py-3 font-bold text-white transition hover:bg-primary-700">Continue</button></div>

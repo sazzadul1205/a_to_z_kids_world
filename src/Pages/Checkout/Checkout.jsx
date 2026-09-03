@@ -16,7 +16,7 @@ import { formatBDT, toBDTAmount } from "../../Shared/currency";
 
 const Checkout = () => {
   const { items, subtotal, updateQuantity, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, saveOrder } = useAuth();
   const [isComplete, setIsComplete] = useState(false);
   const [address, setAddress] = useState({
     name: "",
@@ -38,6 +38,7 @@ const Checkout = () => {
       "_blank",
       "noopener,noreferrer",
     );
+    saveOrder({ items, address, total, createdAt: new Date().toISOString() });
     clearCart();
     setIsComplete(true);
   };

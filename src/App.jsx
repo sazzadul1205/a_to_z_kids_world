@@ -7,6 +7,7 @@ import Checkout from "./Pages/Checkout/Checkout";
 import { AuthProvider } from "./Shared/AuthContext";
 import Shop from "./Pages/Shop/Shop";
 import { About, Contact, Privacy, Sitemap, Terms } from "./Pages/SitePages";
+import { Profile, Orders } from "./Pages/AccountPages";
 
 function App() {
   return (
@@ -23,6 +24,8 @@ function App() {
             <Route path="privacy" element={<Privacy />} />
             <Route path="terms" element={<Terms />} />
             <Route path="sitemap" element={<Sitemap />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="orders" element={<Orders />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

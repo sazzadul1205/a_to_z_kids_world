@@ -1,15 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, Menu, X, UserRound, ShoppingBasket, Sparkles, Moon, Sun } from 'lucide-react';
 import { useTheme } from './useTheme';
+import { Link } from 'react-router';
 import { productsData } from '../Pages/Home/Home';
 import { formatBDT } from './currency';
 
-const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
+const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const searchRef = useRef(null);
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const closeSearchOnOutsideClick = (event) => {
+      if (!searchRef.current?.contains(event.target)) setIsSearchOpen(false);
+    };
+
+    document.addEventListener('mousedown', closeSearchOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeSearchOnOutsideClick);
+  }, []);
 
   const matchingProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -20,11 +33,13 @@ const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
   const handleSearch = (event) => {
     event.preventDefault();
     if (!search.trim()) return;
+    setIsSearchOpen(false);
     navigate(`/shop?q=${encodeURIComponent(search.trim())}`);
   };
 
   const handleProductSelect = (product) => {
     setSearch(product.name);
+    setIsSearchOpen(false);
     navigate(`/shop?q=${encodeURIComponent(product.name)}`);
   };
 
@@ -36,7 +51,7 @@ const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-secondary-100 bg-surface/95 shadow-sm backdrop-blur">
+    <nav ref={searchRef} className="sticky top-0 z-50 border-b border-secondary-100 bg-surface/95 shadow-sm backdrop-blur">
       <div className="bg-secondary-900 px-4 py-2 text-center text-xs font-semibold tracking-wide text-surface">
         New adventures are waiting in the A to Z shop
       </div>
@@ -71,25 +86,29 @@ const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
+                onFocus={() => setIsSearchOpen(true)}
                 type="text"
                 placeholder="Search products..."
                 className="w-full rounded-full border border-secondary-200 bg-secondary-50 px-4 py-2 pl-10 pr-4 text-text outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100 placeholder:text-text-muted"
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-text-muted" />
             </div>
-            <SearchResults products={matchingProducts} onSelect={handleProductSelect} />
+            {isSearchOpen && <SearchResults products={matchingProducts} onSelect={handleProductSelect} />}
           </form>
 
           {/* Right Icons */}
           <div className="flex items-center gap-3">
+            <div className="relative hidden md:block">
             <button
               type="button"
-              onClick={onAccountClick}
+              onClick={() => user ? setIsAccountOpen((value) => !value) : onAccountClick()}
               aria-label={user ? `Account: ${user.email}` : 'My account'}
-              className="hidden rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600 md:block"
+              className="rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600"
             >
               <UserRound className="h-5 w-5" />
             </button>
+            {user && isAccountOpen && <div className="absolute right-0 top-full mt-3 w-64 rounded-2xl border border-border bg-surface p-2 text-text shadow-xl"><div className="border-b border-border px-3 py-3"><p className="text-xs font-bold uppercase tracking-widest text-primary-600">Signed in as</p><p className="mt-1 truncate text-sm font-semibold">{user.email}</p></div><Link to="/profile" onClick={() => setIsAccountOpen(false)} className="mt-2 block rounded-xl px-3 py-2 text-sm font-bold hover:bg-primary-50 hover:text-primary-700">Account info</Link><Link to="/orders" onClick={() => setIsAccountOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-bold hover:bg-primary-50 hover:text-primary-700">Order history</Link><button type="button" onClick={() => { onLogout(); setIsAccountOpen(false); }} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-primary-700 hover:bg-primary-50">Log out</button></div>}
+            </div>
             <button
               type="button"
               onClick={onCartClick}
@@ -128,12 +147,13 @@ const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              onFocus={() => setIsSearchOpen(true)}
               type="text"
               placeholder="Search products..."
               className="w-full rounded-full border border-secondary-200 bg-secondary-50 px-4 py-2 pl-10 pr-4 text-text outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 placeholder:text-text-muted"
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-text-muted" />
-            <SearchResults products={matchingProducts} onSelect={handleProductSelect} />
+            {isSearchOpen && <SearchResults products={matchingProducts} onSelect={handleProductSelect} />}
           </form>
 
           {/* Mobile Links */}
@@ -148,16 +168,7 @@ const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
                 {link.name}
               </a>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                onAccountClick();
-                setIsMenuOpen(false);
-              }}
-              className="rounded-xl px-3 py-2 text-left font-semibold text-text transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600"
-            >
-              My Account
-            </button>
+            {user ? <div className="mt-3 border-t border-secondary-100 pt-3"><p className="px-3 text-xs font-bold uppercase tracking-widest text-text-muted">Account</p><Link to="/profile" onClick={() => setIsMenuOpen(false)} className="mt-1 block rounded-xl px-3 py-2 text-left font-semibold text-text hover:bg-primary-50 hover:text-primary-600">Account info</Link><Link to="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl px-3 py-2 text-left font-semibold text-text hover:bg-primary-50 hover:text-primary-600">Order history</Link><button type="button" onClick={() => { onLogout(); setIsMenuOpen(false); }} className="block w-full rounded-xl px-3 py-2 text-left font-semibold text-primary-700 hover:bg-primary-50">Log out</button></div> : <button type="button" onClick={() => { onAccountClick(); setIsMenuOpen(false); }} className="rounded-xl px-3 py-2 text-left font-semibold text-text transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">My Account</button>}
           </div>
         </div>
       )}

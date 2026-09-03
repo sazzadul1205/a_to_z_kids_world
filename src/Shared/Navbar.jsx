@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Menu, X, UserRound, ShoppingBasket, Sparkles, Moon, Sun } from 'lucide-react';
 import { useTheme } from './useTheme';
 
-const Navbar = () => {
+const Navbar = ({ onCartClick, onAccountClick, cartCount, user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
 
@@ -57,23 +57,23 @@ const Navbar = () => {
 
           {/* Right Icons */}
           <div className="flex items-center gap-3">
-            <a
-              href="/account"
-              aria-label="My account"
+            <button
+              type="button"
+              onClick={onAccountClick}
+              aria-label={user ? `Account: ${user.email}` : 'My account'}
               className="hidden rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600 md:block"
             >
               <UserRound className="h-5 w-5" />
-            </a>
-            <a
-              href="/cart"
+            </button>
+            <button
+              type="button"
+              onClick={onCartClick}
               aria-label="Shopping basket"
               className="relative rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600"
             >
               <ShoppingBasket className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-800 text-xs font-bold text-text">
-                3
-              </span>
-            </a>
+              {cartCount > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-800 text-xs font-bold text-text">{cartCount}</span>}
+            </button>
             <button
               type="button"
               onClick={toggleTheme}
@@ -120,13 +120,16 @@ const Navbar = () => {
                 {link.name}
               </a>
             ))}
-            <a
-              href="/account"
+            <button
+              type="button"
+              onClick={() => {
+                onAccountClick();
+                setIsMenuOpen(false);
+              }}
               className="rounded-xl px-3 py-2 text-left font-semibold text-text transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600"
-              onClick={() => setIsMenuOpen(false)}
             >
               My Account
-            </a>
+            </button>
           </div>
         </div>
       )}

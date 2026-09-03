@@ -6,6 +6,8 @@ import {
   MessageCircle,
   ShieldCheck,
   Truck,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useCart } from "../../Shared/useCart";
@@ -13,7 +15,7 @@ import { useAuth } from "../../Shared/useAuth";
 import { formatBDT, toBDTAmount } from "../../Shared/currency";
 
 const Checkout = () => {
-  const { items, subtotal } = useCart();
+  const { items, subtotal, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
   const [isComplete, setIsComplete] = useState(false);
   const [address, setAddress] = useState({
@@ -36,6 +38,7 @@ const Checkout = () => {
       "_blank",
       "noopener,noreferrer",
     );
+    clearCart();
     setIsComplete(true);
   };
 
@@ -103,7 +106,7 @@ const Checkout = () => {
         >
           <ArrowLeft className="h-4 w-4" /> Back to shopping
         </Link>
-        <div className="mt-7 grid gap-8 lg:grid-cols-[1fr_380px]">
+        <div className="mt-7 grid gap-6 sm:gap-8 lg:grid-cols-[1fr_380px]">
           <form onSubmit={handleWhatsAppOrder} className="space-y-6">
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
@@ -190,7 +193,7 @@ const Checkout = () => {
               to confirm everything.
             </p>
           </form>
-          <aside className="h-fit rounded-3xl border border-border bg-surface p-6 shadow-sm lg:sticky lg:top-28">
+          <aside className="h-fit rounded-3xl border border-border bg-surface p-5 shadow-sm sm:p-6 lg:sticky lg:top-28">
             <h2 className="text-xl font-black text-text">Order summary</h2>
             {items.length === 0 ? (
               <p className="mt-6 text-sm leading-relaxed text-text-muted">
@@ -200,7 +203,7 @@ const Checkout = () => {
             ) : (
               <div className="mt-5 space-y-4">
                 {items.map((item) => (
-                  <div key={item.name} className="flex gap-3">
+                  <div key={item.name} className="flex min-w-0 gap-3">
                     <img
                       src={item.image}
                       alt=""
@@ -208,11 +211,9 @@ const Checkout = () => {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-text">{item.name}</p>
-                      <p className="text-sm text-text-muted">
-                        Qty {item.quantity}
-                      </p>
+                      <div className="mt-2 flex items-center gap-2"><div className="flex items-center rounded-lg border border-border"><button type="button" aria-label={`Decrease ${item.name} quantity`} onClick={() => updateQuantity(item.name, item.quantity - 1)} className="p-1 hover:bg-secondary-100"><Minus className="h-3 w-3" /></button><span className="min-w-7 text-center text-sm font-bold">{item.quantity}</span><button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => updateQuantity(item.name, item.quantity + 1)} className="p-1 hover:bg-secondary-100"><Plus className="h-3 w-3" /></button></div></div>
                     </div>
-                    <span className="font-bold text-text">
+                    <span className="shrink-0 text-right text-sm font-bold text-text sm:text-base">
                       {formatBDT(toBDTAmount(item.price) * item.quantity)}
                     </span>
                   </div>

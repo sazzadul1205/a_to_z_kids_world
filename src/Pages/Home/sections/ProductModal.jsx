@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { X, Check, ShieldCheck, Star, Truck } from "lucide-react";
 import { formatBDT } from "../../../Shared/currency";
 
-const ProductModal = ({ product, onClose, onAddToCart }) => {
+const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
   useEffect(() => {
     if (!product) return undefined;
 
@@ -29,7 +29,7 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
       role="presentation"
     >
       <div
-        className="relative grid w-full max-w-2xl overflow-hidden rounded-3xl bg-surface shadow-2xl animate-in fade-in zoom-in-95 md:grid-cols-2"
+        className="relative grid max-h-[calc(100vh-1rem)] w-full max-w-4xl overflow-y-auto rounded-3xl bg-surface shadow-2xl animate-in fade-in zoom-in-95 sm:max-h-[calc(100vh-2rem)] md:grid-cols-[0.85fr_1.15fr] md:overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
@@ -46,27 +46,30 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
         <img
           src={product.image}
           alt={product.name}
-          className="h-64 w-full object-cover md:h-full"
+          className="h-52 w-full object-cover object-center md:order-2 md:h-107.5"
         />
 
-        <div className="p-7 sm:p-9">
+        <div className="p-5 sm:order-1 sm:p-6">
           <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
             {product.category}
           </p>
           <h2
             id="product-modal-title"
-            className="mt-2 text-3xl font-black text-text"
+            className="mt-2 text-2xl font-black text-text sm:text-3xl"
           >
             {product.name}
           </h2>
           <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-accent-900">
             <Star className="h-4 w-4 fill-accent-800 text-accent-800" />
-            {product.rating} <span className="font-normal text-text-muted">({product.reviews})</span>
+            {product.rating}{" "}
+            <span className="font-normal text-text-muted">
+              ({product.reviews})
+            </span>
           </div>
           <p className="mt-4 leading-relaxed text-text-muted">
             {product.description}
           </p>
-          <div className="mt-5 space-y-3 rounded-2xl bg-surface-soft p-4 text-sm text-text-muted">
+          <div className="mt-4 space-y-2 rounded-2xl bg-surface-soft p-3 text-sm text-text-muted">
             <div className="flex items-center gap-3 font-semibold text-text">
               <Check className="h-5 w-5 text-primary-600" />
               Suitable for {product.age.toLowerCase()}
@@ -80,17 +83,26 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
               Free delivery on this discovery
             </div>
           </div>
-          <div className="mt-6 rounded-2xl border border-border bg-surface-soft p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-text-muted">Our price</p>
+          <div className="mt-4 rounded-2xl border border-border bg-surface-soft p-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-text-muted">
+              Our price
+            </p>
             <div className="mt-1 flex items-end justify-between gap-4">
-              <span className="text-4xl font-black leading-none text-primary-700">{formatBDT(product.price)}</span>
-              <span className="text-right text-xs font-semibold text-text-muted">Easy returns<br />within 30 days</span>
+              <span className="text-3xl font-black leading-none text-primary-700">
+                {formatBDT(product.price)}
+              </span>
+              <span className="text-right text-xs font-semibold text-text-muted">
+                Easy returns
+                <br />
+                within 30 days
+              </span>
             </div>
           </div>
-          <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <ShieldCheck className="h-4 w-4 text-primary-600" /> Safe checkout and quality-checked toys
+          <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-text-muted">
+            <ShieldCheck className="h-4 w-4 text-primary-600" /> Safe checkout
+            and quality-checked toys
           </div>
-          <div className="mt-5 flex items-center justify-between gap-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => onAddToCart(product)}
@@ -98,14 +110,15 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
             >
               Add to cart
             </button>
+
+            <button
+              type="button"
+              onClick={() => onBuyNow(product)}
+              className="w-full rounded-xl border border-border px-4 py-3 font-bold text-text transition hover:border-primary-300 hover:bg-primary-50"
+            >
+              Buy now
+            </button>
           </div>
-          <button
-            type="button"
-              onClick={() => onAddToCart(product)}
-            className="mt-3 w-full rounded-xl border border-border px-4 py-3 font-bold text-text transition hover:border-primary-300 hover:bg-primary-50"
-          >
-            Buy now
-          </button>
         </div>
       </div>
     </div>

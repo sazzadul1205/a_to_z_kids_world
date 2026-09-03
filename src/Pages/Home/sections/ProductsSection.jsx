@@ -1,7 +1,7 @@
 import { ShoppingBasket, Sparkles } from "lucide-react";
 import { formatBDT } from "../../../Shared/currency";
 
-const ProductsSection = ({ products, onProductClick }) => {
+const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
   return (
     <section
       id="products"
@@ -13,9 +13,7 @@ const ProductsSection = ({ products, onProductClick }) => {
             <p className="text-sm font-bold uppercase tracking-widest text-secondary-900">
               Little picks, big smiles
             </p>
-            <h2 className="mt-2 text-3xl font-black text-text">
-              Featured playthings
-            </h2>
+            <h2 className="mt-2 text-3xl font-black text-text">{selectedCategory || "Featured playthings"}</h2>
           </div>
           <span className="hidden rounded-full bg-secondary-100 px-4 py-2 text-sm font-semibold text-secondary-1000 sm:block">
             {products.length} discoveries

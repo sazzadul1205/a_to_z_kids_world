@@ -29,7 +29,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
       role="presentation"
     >
       <div
-        className="relative grid max-h-[calc(100vh-1rem)] w-full max-w-4xl overflow-y-auto rounded-3xl bg-surface shadow-2xl animate-in fade-in zoom-in-95 sm:max-h-[calc(100vh-2rem)] md:grid-cols-[0.85fr_1.15fr] md:overflow-hidden"
+        className="relative grid max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-3xl bg-surface shadow-2xl animate-in fade-in zoom-in-95 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] md:grid-cols-[0.85fr_1.15fr] md:grid-rows-1"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
@@ -46,16 +46,16 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
         <img
           src={product.image}
           alt={product.name}
-          className="h-52 w-full object-cover object-center md:order-2 md:h-107.5"
+          className="h-36 w-full object-cover object-center sm:h-44 md:order-2 md:h-[430px]"
         />
 
-        <div className="p-5 sm:order-1 sm:p-6">
+        <div className="min-h-0 overflow-y-auto p-4 sm:order-1 sm:p-6 md:overflow-y-visible">
           <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
             {product.category}
           </p>
           <h2
             id="product-modal-title"
-            className="mt-2 text-2xl font-black text-text sm:text-3xl"
+            className="mt-2 pr-8 text-2xl font-black text-text sm:text-3xl"
           >
             {product.name}
           </h2>
@@ -102,7 +102,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
             <ShieldCheck className="h-4 w-4 text-primary-600" /> Safe checkout
             and quality-checked toys
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 sm:gap-3">
             <button
               type="button"
               onClick={() => onAddToCart(product)}

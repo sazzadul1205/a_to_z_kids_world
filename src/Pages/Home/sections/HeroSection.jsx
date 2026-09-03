@@ -1,4 +1,5 @@
 import { Sparkles, MessageCircle, ArrowRight, Smile } from 'lucide-react';
+import { whatsappUrl } from '../../../Shared/whatsapp';
 
 const HeroSection = () => {
   // Using a free placeholder image from picsum.photos
@@ -27,7 +28,7 @@ const HeroSection = () => {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
-                href="https://wa.me/15551234567"
+                href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl bg-secondary-900 px-6 py-3 font-bold text-surface shadow-md transition hover:-translate-y-1 hover:bg-secondary-1000"

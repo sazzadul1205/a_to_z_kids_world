@@ -13,6 +13,7 @@ import { Link } from "react-router";
 import { useCart } from "../../Shared/useCart";
 import { useAuth } from "../../Shared/useAuth";
 import { formatBDT, toBDTAmount } from "../../Shared/currency";
+import { createWhatsAppUrl } from "../../Shared/whatsapp";
 
 const Checkout = () => {
   const { items, subtotal, updateQuantity, clearCart } = useCart();
@@ -34,7 +35,7 @@ const Checkout = () => {
       .join("\n");
     const message = `Hello! I would like to place an order.\n\n${orderLines}\n\nTotal: ${formatBDT(total)}\nDelivery to: ${address.name}, ${address.line}, ${address.city}, ${address.postal}`;
     window.open(
-      `https://wa.me/15551234567?text=${encodeURIComponent(message)}`,
+      createWhatsAppUrl(message),
       "_blank",
       "noopener,noreferrer",
     );

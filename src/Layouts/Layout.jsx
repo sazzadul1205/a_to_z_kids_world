@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import Navbar from "../Shared/Navbar";
 import Footer from "../Shared/Footer";
 import { useEffect, useState } from "react";
@@ -13,6 +13,11 @@ const LayoutContent = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { itemCount } = useCart();
   const { user, logout } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const openAuth = () => setIsAuthOpen(true);

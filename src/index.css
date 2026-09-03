@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  /* ========== Primary — Coral Red ========== */
+  --color-primary-50: #fff4f3;
+  --color-primary-100: #ffe5e3;
+  --color-primary-200: #ffd5d3;
+  --color-primary-300: #ffc6c2;
+  --color-primary-400: #ffb6b2;
+  --color-primary-500: #ffa5a1;
+  --color-primary-600: #ff9490;
+  --color-primary-700: #ff807e;
+  --color-primary-800: #ff6b6b;
+  --color-primary-900: #e9595b;
+  --color-primary-950: #d3474a;
+  --color-primary-1000: #bd343b;
+  --color-primary-1100: #a6212c;
+  --color-primary-1200: #90091d;
+  --color-primary-1300: #760114;
+  --color-primary-1400: #5c000d;
+
+  /* ========== Accent — Sunny Yellow ========== */
+  --color-accent-50: #fff7da;
+  --color-accent-100: #fff4ca;
+  --color-accent-200: #fff0ba;
+  --color-accent-300: #ffeca9;
+  --color-accent-400: #ffe999;
+  --color-accent-500: #ffe587;
+  --color-accent-600: #ffe173;
+  --color-accent-700: #ffdd5c;
+  --color-accent-800: #ffd93d;
+  --color-accent-900: #e4be03;
+  --color-accent-950: #c6a500;
+  --color-accent-1000: #a98c00;
+  --color-accent-1100: #8d7501;
+  --color-accent-1200: #715d01;
+  --color-accent-1300: #574700;
+  --color-accent-1400: #3e3200;
+
+  /* ========== Secondary — Sky Blue ========== */
+  --color-secondary-50: #f0f8ff;
+  --color-secondary-100: #ddefff;
+  --color-secondary-200: #b6dcff;
+  --color-secondary-300: #a1d3ff;
+  --color-secondary-400: #8cc9ff;
+  --color-secondary-500: #75bfff;
+  --color-secondary-600: #5cb5ff;
+  --color-secondary-700: #4dabf7;
+  --color-secondary-800: #3998e2;
+  --color-secondary-900: #2686cd;
+  --color-secondary-950: #0c73b7;
+  --color-secondary-1000: #01619e;
+  --color-secondary-1100: #005083;
+  --color-secondary-1200: #00406a;
+  --color-secondary-1300: #003052;
+
+  /* ========== Semantic / Surface tokens ========== */
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8f8fa;
+  --color-text: #101828;
+  --color-text-muted: #667085;
+  --color-border: #e5e7eb;
+  --color-footer: #005083;
+  --color-footer-muted: #b6dcff;
+  --color-footer-border: #003052;
+  --color-on-footer: #ffffff;
+
+  /* ========== Radius tokens ========== */
+  --radius-card: 1rem;
+  --radius-button: 0.75rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --color-secondary-50: #183b5b;
+  --color-secondary-100: #21496c;
+  --color-secondary-200: #356589;
+  --color-surface: #102a43;
+  --color-surface-soft: #163a5c;
+  --color-text: #f0f8ff;
+  --color-text-muted: #b6dcff;
+  --color-border: #2d628d;
+  --color-footer: #071d31;
+  --color-footer-muted: #b6dcff;
+  --color-footer-border: #163a5c;
+  --color-on-footer: #f0f8ff;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: background-color 300ms ease, color 300ms ease;
+}

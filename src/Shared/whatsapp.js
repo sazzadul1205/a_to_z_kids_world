@@ -1,6 +1,10 @@
-const configuredNumber = import.meta.env.VITE_WHATSAPP_NUMBER;
+import { storeData } from "../data/store";
 
-export const whatsappNumber = configuredNumber.replace(/\D/g, '');
+export const whatsappNumber = String(storeData.whatsapp.number).replace(
+  /\D/g,
+  "",
+);
 export const whatsappUrl = `https://wa.me/${whatsappNumber}`;
 
-export const createWhatsAppUrl = (message) => `${whatsappUrl}?text=${encodeURIComponent(message)}`;
+export const createWhatsAppUrl = (message) =>
+  `${whatsappUrl}?text=${encodeURIComponent(message)}`;

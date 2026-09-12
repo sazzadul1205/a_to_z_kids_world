@@ -1,22 +1,24 @@
 import { ShoppingBasket, Sparkles } from "lucide-react";
 import { formatBDT } from "../../../Shared/currency";
+import { pagesData } from "../../../data/pages";
 
 const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
+  const copy = pagesData.products;
+
   return (
-    <section
-      id="products"
-      className="bg-surface-soft px-4 py-16 sm:px-6 lg:px-8"
-    >
+    <section id="products" className="bg-surface-soft px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-secondary-900">
-              Little picks, big smiles
+              {copy.eyebrow}
             </p>
-            <h2 className="mt-2 text-3xl font-black text-text">{selectedCategory || "Featured playthings"}</h2>
+            <h2 className="mt-2 text-3xl font-black text-text">
+              {selectedCategory || copy.fallbackTitle}
+            </h2>
           </div>
           <span className="hidden rounded-full bg-secondary-100 px-4 py-2 text-sm font-semibold text-secondary-1000 sm:block">
-            {products.length} discoveries
+            {products.length} {copy.countSuffix}
           </span>
         </div>
 
@@ -40,9 +42,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
                 <p className="text-xs font-bold uppercase tracking-widest text-primary-600">
                   {product.category}
                 </p>
-                <h3 className="mt-2 text-xl font-black text-text">
-                  {product.name}
-                </h3>
+                <h3 className="mt-2 text-xl font-black text-text">{product.name}</h3>
                 <p className="mt-2 min-h-12 text-sm leading-relaxed text-text-muted">
                   {product.description}
                 </p>
@@ -53,7 +53,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
                   <button
                     type="button"
                     onClick={() => onProductClick(product)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-surface transition hover:bg-primary-700 hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-surface transition hover:scale-105 hover:bg-primary-700 active:scale-95"
                   >
                     <ShoppingBasket className="h-4 w-4" /> Buy now
                   </button>
@@ -64,9 +64,10 @@ const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
         </div>
 
         {products.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-text-muted">
+          <div className="flex flex-col items-center justify-center py-16 text-center text-text-muted">
             <Sparkles className="h-12 w-12 text-accent-500" />
-            <p className="mt-4 text-lg">No toys in this category… yet!</p>
+            <p className="mt-4 text-lg font-bold text-text">{copy.emptyTitle}</p>
+            <p className="mt-1 text-sm">{copy.emptyMessage}</p>
           </div>
         )}
       </div>

@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Menu, X, UserRound, ShoppingBasket, Sparkles, Moon, Sun } from 'lucide-react';
+import { Search, Menu, X, ShoppingBasket, Sparkles, Moon, Sun } from 'lucide-react';
 import { useTheme } from './useTheme';
 import { Link } from 'react-router';
-import { productsData } from '../Pages/Home/Home';
+import { productsData } from '../data/products';
 import { formatBDT } from './currency';
 
-const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
+const Navbar = ({ onCartClick, cartCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const searchRef = useRef(null);
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -27,7 +26,9 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
   const matchingProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return [];
-    return productsData.filter((product) => `${product.name} ${product.category} ${product.description}`.toLowerCase().includes(query)).slice(0, 5);
+    return productsData
+      .filter((product) => `${product.name} ${product.category} ${product.description}`.toLowerCase().includes(query))
+      .slice(0, 5);
   }, [search]);
 
   const handleSearch = (event) => {
@@ -57,30 +58,27 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
       </div>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex min-h-18 items-center justify-between gap-2 sm:gap-4">
-          {/* Logo */}
           <div className="shrink-0">
-            <a href="/" className="flex items-center gap-2 text-lg font-black tracking-tight text-text sm:text-2xl">
+            <Link to="/" className="flex items-center gap-2 text-lg font-black tracking-tight text-text sm:text-2xl">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-sm sm:h-10 sm:w-10">
                 <Sparkles className="h-5 w-5" />
               </span>
               A to Z<span className="text-primary-600">Kids</span>
-            </a>
+            </Link>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden items-center gap-7 md:flex">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 className="font-semibold text-text transition-colors duration-200 hover:text-primary-600"
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
           </div>
 
-          {/* Search Bar - Desktop */}
           <form onSubmit={handleSearch} className="relative mx-2 hidden max-w-xs flex-1 md:flex">
             <div className="relative w-full">
               <input
@@ -96,19 +94,7 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
             {isSearchOpen && <SearchResults products={matchingProducts} onSelect={handleProductSelect} />}
           </form>
 
-          {/* Right Icons */}
           <div className="flex items-center gap-3">
-            <div className="relative hidden md:block">
-            <button
-              type="button"
-              onClick={() => user ? setIsAccountOpen((value) => !value) : onAccountClick()}
-              aria-label={user ? `Account: ${user.email}` : 'My account'}
-              className="rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600"
-            >
-              <UserRound className="h-5 w-5" />
-            </button>
-            {user && isAccountOpen && <div className="absolute right-0 top-full mt-3 w-64 rounded-2xl border border-border bg-surface p-2 text-text shadow-xl"><div className="border-b border-border px-3 py-3"><p className="text-xs font-bold uppercase tracking-widest text-primary-600">Signed in as</p><p className="mt-1 truncate text-sm font-semibold">{user.email}</p></div><Link to="/profile" onClick={() => setIsAccountOpen(false)} className="mt-2 block rounded-xl px-3 py-2 text-sm font-bold hover:bg-primary-50 hover:text-primary-700">Account info</Link><Link to="/orders" onClick={() => setIsAccountOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-bold hover:bg-primary-50 hover:text-primary-700">Order history</Link><button type="button" onClick={() => { onLogout(); setIsAccountOpen(false); }} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-bold text-primary-700 hover:bg-primary-50">Log out</button></div>}
-            </div>
             <button
               type="button"
               onClick={onCartClick}
@@ -116,7 +102,11 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
               className="relative rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600"
             >
               <ShoppingBasket className="h-5 w-5" />
-              {cartCount > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-800 text-xs font-bold text-text">{cartCount}</span>}
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-800 text-xs font-bold text-text">
+                  {cartCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -127,7 +117,6 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
@@ -139,10 +128,8 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="border-t border-secondary-100 bg-surface px-4 py-5 md:hidden">
-          {/* Mobile Search */}
           <form onSubmit={handleSearch} className="relative mb-4 w-full">
             <input
               value={search}
@@ -156,19 +143,17 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
             {isSearchOpen && <SearchResults products={matchingProducts} onSelect={handleProductSelect} />}
           </form>
 
-          {/* Mobile Links */}
           <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 className="rounded-xl px-3 py-2 font-semibold text-text transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
-            {user ? <div className="mt-3 border-t border-secondary-100 pt-3"><p className="px-3 text-xs font-bold uppercase tracking-widest text-text-muted">Account</p><Link to="/profile" onClick={() => setIsMenuOpen(false)} className="mt-1 block rounded-xl px-3 py-2 text-left font-semibold text-text hover:bg-primary-50 hover:text-primary-600">Account info</Link><Link to="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl px-3 py-2 text-left font-semibold text-text hover:bg-primary-50 hover:text-primary-600">Order history</Link><button type="button" onClick={() => { onLogout(); setIsMenuOpen(false); }} className="block w-full rounded-xl px-3 py-2 text-left font-semibold text-primary-700 hover:bg-primary-50">Log out</button></div> : <button type="button" onClick={() => { onAccountClick(); setIsMenuOpen(false); }} className="rounded-xl px-3 py-2 text-left font-semibold text-text transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600">My Account</button>}
           </div>
         </div>
       )}
@@ -179,7 +164,25 @@ const Navbar = ({ onCartClick, onAccountClick, onLogout, cartCount, user }) => {
 const SearchResults = ({ products, onSelect }) => {
   if (!products.length) return null;
 
-  return <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-surface p-2 text-left shadow-xl">{products.map((product) => <button key={product.name} type="button" onClick={() => onSelect(product)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary-50"><img src={product.image} alt="" className="h-10 w-10 rounded-lg object-cover" /><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-text">{product.name}</strong><span className="block text-xs text-text-muted">{product.category}</span></span><span className="shrink-0 text-sm font-bold text-primary-700">{formatBDT(product.price)}</span></button>)}</div>;
+  return (
+    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-surface p-2 text-left shadow-xl">
+      {products.map((product) => (
+        <button
+          key={product.name}
+          type="button"
+          onClick={() => onSelect(product)}
+          className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary-50"
+        >
+          <img src={product.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-sm text-text">{product.name}</strong>
+            <span className="block text-xs text-text-muted">{product.category}</span>
+          </span>
+          <span className="shrink-0 text-sm font-bold text-primary-700">{formatBDT(product.price)}</span>
+        </button>
+      ))}
+    </div>
+  );
 };
 
 export default Navbar;

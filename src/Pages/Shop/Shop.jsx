@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Filter, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
-import { productsData } from '../Home/Home';
+import { productsData } from '../../data/products';
 import ProductsSection from '../Home/sections/ProductsSection';
 import ProductModal from '../Home/sections/ProductModal';
 import { useCart } from '../../Shared/useCart';

@@ -136,17 +136,6 @@ const Footer = () => {
               ))}
             </div>
           </div>
-
-          <div className="flex w-full md:w-auto">
-            <input
-              type="email"
-              placeholder="Subscribe to newsletter"
-              className="flex-1 rounded-l-xl border border-footer-border bg-footer px-4 py-2 text-on-footer outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500 placeholder:text-footer-muted md:w-64"
-            />
-            <button type="button" className="rounded-r-xl bg-primary-600 px-4 py-2 font-bold text-on-footer transition-colors duration-200 hover:bg-primary-700">
-              Subscribe
-            </button>
-          </div>
         </div>
       </div>
 

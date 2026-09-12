@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
-  LockKeyhole,
   MessageCircle,
   ShieldCheck,
   Truck,
@@ -11,13 +10,11 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { useCart } from "../../Shared/useCart";
-import { useAuth } from "../../Shared/useAuth";
 import { formatBDT, toBDTAmount } from "../../Shared/currency";
 import { createWhatsAppUrl } from "../../Shared/whatsapp";
 
 const Checkout = () => {
   const { items, subtotal, updateQuantity, clearCart } = useCart();
-  const { user, saveOrder } = useAuth();
   const [isComplete, setIsComplete] = useState(false);
   const [address, setAddress] = useState({
     name: "",
@@ -34,47 +31,10 @@ const Checkout = () => {
       .map((item) => `${item.name} x${item.quantity} - ${formatBDT(item.price)}`)
       .join("\n");
     const message = `Hello! I would like to place an order.\n\n${orderLines}\n\nTotal: ${formatBDT(total)}\nDelivery to: ${address.name}, ${address.line}, ${address.city}, ${address.postal}`;
-    window.open(
-      createWhatsAppUrl(message),
-      "_blank",
-      "noopener,noreferrer",
-    );
-    saveOrder({ items, address, total, createdAt: new Date().toISOString() });
+    window.open(createWhatsAppUrl(message), "_blank", "noopener,noreferrer");
     clearCart();
     setIsComplete(true);
   };
-
-  if (!user)
-    return (
-      <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 py-16 text-center">
-        <LockKeyhole className="h-14 w-14 text-primary-600" />
-        <p className="mt-6 text-sm font-bold uppercase tracking-widest text-primary-600">
-          Before checkout
-        </p>
-        <h1 className="mt-2 text-4xl font-black text-text">
-          Are you already logged in?
-        </h1>
-        <p className="mt-4 leading-relaxed text-text-muted">
-          Please log in or create your account first. Then we&apos;ll collect
-          your delivery address and send your order to our team on WhatsApp.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("open-auth"))}
-            className="rounded-xl bg-primary-600 px-6 py-3 font-bold text-white hover:bg-primary-700"
-          >
-            Log in or sign up
-          </button>
-          <Link
-            to="/"
-            className="rounded-xl border border-border px-6 py-3 font-bold text-text hover:border-primary-300"
-          >
-            Back to shop
-          </Link>
-        </div>
-      </div>
-    );
 
   if (isComplete)
     return (
@@ -112,7 +72,7 @@ const Checkout = () => {
           <form onSubmit={handleWhatsAppOrder} className="space-y-6">
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
-                Welcome, {user.email}
+                Almost there
               </p>
               <h1 className="mt-2 text-4xl font-black text-text">
                 Where should we deliver?
@@ -213,7 +173,29 @@ const Checkout = () => {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-text">{item.name}</p>
-                      <div className="mt-2 flex items-center gap-2"><div className="flex items-center rounded-lg border border-border"><button type="button" aria-label={`Decrease ${item.name} quantity`} onClick={() => updateQuantity(item.name, item.quantity - 1)} className="p-1 hover:bg-secondary-100"><Minus className="h-3 w-3" /></button><span className="min-w-7 text-center text-sm font-bold">{item.quantity}</span><button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => updateQuantity(item.name, item.quantity + 1)} className="p-1 hover:bg-secondary-100"><Plus className="h-3 w-3" /></button></div></div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="flex items-center rounded-lg border border-border">
+                          <button
+                            type="button"
+                            aria-label={`Decrease ${item.name} quantity`}
+                            onClick={() => updateQuantity(item.name, item.quantity - 1)}
+                            className="p-1 hover:bg-secondary-100"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="min-w-7 text-center text-sm font-bold">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`Increase ${item.name} quantity`}
+                            onClick={() => updateQuantity(item.name, item.quantity + 1)}
+                            className="p-1 hover:bg-secondary-100"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <span className="shrink-0 text-right text-sm font-bold text-text sm:text-base">
                       {formatBDT(toBDTAmount(item.price) * item.quantity)}
@@ -252,4 +234,5 @@ const Checkout = () => {
     </div>
   );
 };
+
 export default Checkout;

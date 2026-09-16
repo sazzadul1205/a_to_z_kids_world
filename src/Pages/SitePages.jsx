@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, CheckCircle2, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { Link } from "react-router";
-import { whatsappUrl } from "../Shared/whatsapp";
+import { whatsappUrl } from "../lib/whatsapp";
 import { pagesData } from "../data/pages";
 
 const PageShell = ({ eyebrow, title, intro, children }) => (

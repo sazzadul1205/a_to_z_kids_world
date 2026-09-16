@@ -1,5 +1,5 @@
 import { Sparkles, MessageCircle, ArrowRight, Smile } from "lucide-react";
-import { whatsappUrl } from "../../../Shared/whatsapp";
+import { whatsappUrl } from "../../../lib/whatsapp";
 import { pagesData } from "../../../data/pages";
 
 const HeroSection = () => {

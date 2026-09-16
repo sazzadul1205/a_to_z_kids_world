@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router";
-import { ThemeProvider } from "./Shared/ThemeContext";
+import { ThemeProvider } from "./context/theme/ThemeContext";
 import Layout from "./Layouts/Layout";
 import Home from "./Pages/Home/Home";
 import NotFound from "./Pages/NotFound/NotFound";

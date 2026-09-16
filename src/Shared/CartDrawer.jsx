@@ -1,7 +1,7 @@
 import { Minus, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useCart } from './useCart';
-import { formatBDT, toBDTAmount } from './currency';
+import { formatBDT, toBDTAmount } from '../lib/currency';
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const { items, itemCount, subtotal, updateQuantity } = useCart();

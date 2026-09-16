@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Search, Menu, X, ShoppingBasket, Sparkles, Moon, Sun } from "lucide-react";
-import { useTheme } from "./useTheme";
+
 import { productsData } from "../data/products";
 import { storeData } from "../data/store";
-import { formatBDT } from "./currency";
+import { formatBDT } from "../lib/currency";
+import { useTheme } from "../context/theme/useTheme";
 
 const Navbar = ({ onCartClick, cartCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

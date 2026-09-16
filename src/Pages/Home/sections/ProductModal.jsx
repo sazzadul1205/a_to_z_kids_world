@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { X, Check, ShieldCheck, Star, Truck } from "lucide-react";
-import { formatBDT } from "../../../Shared/currency";
-
+import { formatBDT } from "../../../lib/currency";
 const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
   useEffect(() => {
     if (!product) return undefined;

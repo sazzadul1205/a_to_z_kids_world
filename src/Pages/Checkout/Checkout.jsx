@@ -2,8 +2,8 @@ import { useState } from "react";
 import { ArrowLeft, CheckCircle2, MessageCircle, ShieldCheck, Truck, Minus, Plus } from "lucide-react";
 import { Link } from "react-router";
 import { useCart } from "../../Shared/useCart";
-import { formatBDT, toBDTAmount } from "../../Shared/currency";
-import { createWhatsAppUrl } from "../../Shared/whatsapp";
+import { formatBDT, toBDTAmount } from "../../lib/currency";
+import { createWhatsAppUrl } from "../../lib/whatsapp";
 import { pagesData } from "../../data/pages";
 import { storeData } from "../../data/store";
 

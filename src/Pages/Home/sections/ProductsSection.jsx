@@ -1,6 +1,5 @@
 import { ShoppingBasket, Sparkles } from "lucide-react";
-import { formatBDT } from "../../../Shared/currency";
-import { pagesData } from "../../../data/pages";
+import { formatBDT } from "../../../lib/currency";import { pagesData } from "../../../data/pages";
 
 const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
   const copy = pagesData.products;

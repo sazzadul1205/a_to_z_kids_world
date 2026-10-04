@@ -36,8 +36,9 @@ is therefore **public**. Keep secrets out of this file.
 ```
 src/
   context/catalog/  loads categories + products once and shares them
-  hooks/            useResource (async data), useProductReviews
-  lib/              api client, auth token storage, formatting helpers
+  context/query/    QueryClient provider and defaults
+  hooks/            query and mutation hooks per resource
+  lib/              axios client, cache keys, formatting helpers
   Pages/Home/       hero, categories, product grid, product modal
   Pages/Shop/       filtering, sorting, search
   Pages/Checkout/   collects details, then hands the basket to WhatsApp
@@ -47,14 +48,38 @@ src/
 
 ### Data loading
 
-`useResource(fetcher)` wraps every API read. Callers memoise `fetcher` with
-`useCallback` — a new identity means a different resource, and the hook resets
-to `loading` so the previous resource's data is never shown against the new
-one. Results are guarded by an `AbortSignal` and an `active` flag, so a fast
-filter change cannot land a stale response.
+All server state goes through **axios** and **TanStack Query**.
 
-`categories` and `products` load once in `CatalogProvider` and are shared
-through context; rating summaries are per-product and load on demand.
+`lib/api.js` is a single axios instance. A request interceptor attaches the
+session token, and a response interceptor unwraps the payload, converts failures
+into a typed `ApiError` carrying the status and field errors, and clears the
+token on a `401` — but only when the failing request actually carried one, so a
+rejected sign-in cannot wipe a different still-valid session. Cancellations are
+passed through untouched, which is what lets query cancellation stay quiet.
+
+`lib/queryKeys.js` is the only place cache keys are built, because invalidation
+depends on them matching exactly.
+
+Reads use `useQuery`; writes use `useMutation` and invalidate the keys they
+affect rather than patching a local copy:
+
+| Hook | Cache key | Invalidated by |
+|---|---|---|
+| `useCatalogQuery` | `["catalog"]` | product and category writes |
+| `useProductReviews` | `["reviews", …]` | any review write |
+| `useReviewsQuery` / `useOrdersQuery` / `useUsersQuery` | `["reviews"]`, `["orders"]`, `["users"]` | the matching writes |
+| `useSessionQuery` | `["session"]` | cleared outright when the token is cleared |
+
+Because keys are shared, the dashboard reads the same cached orders and reviews
+as the Orders and Reviews screens instead of issuing its own request.
+
+`CatalogProvider` stays a context so the nine components that read the catalogue
+do not each need to know about query keys, and it keeps the `status` /
+`error` / `reload` shape they already render against.
+
+Categories and products load together in one query, because the storefront needs
+the category names to render any product. A product's rating list and its
+aggregate are separate queries, so the badge can appear as soon as either lands.
 
 ### Cart
 
@@ -89,10 +114,10 @@ revalidates the session against `GET /auth/me` on load.
 
 ## Session handling
 
-The token lives in `localStorage`. `lib/api.js` clears it only when a request
-that actually carried a token comes back `401` — a rejected login must not
-wipe a different, still-valid session, and a public request that happens to
-`401` has no session to clear.
+The token lives in `localStorage`. `AuthProvider` revalidates a stored token
+against `GET /auth/me` on mount, so a revoked account cannot linger in a stale
+localStorage copy, and the `["session"]` cache entry is dropped as soon as the
+token is cleared.
 
 `resolveImageUrl` passes absolute `http(s)` URLs through and resolves
 everything else — including protocol-relative `//host` and `data:` values —

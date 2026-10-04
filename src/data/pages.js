@@ -108,10 +108,10 @@ export const pagesData = {
       nameLabel: "Your name",
       emailLabel: "Email address",
       messageLabel: "How can we help?",
-      submitLabel: "Send message",
-      successTitle: "Message noted!",
+      submitLabel: "Send via WhatsApp",
+      successTitle: "Message ready!",
       successMessage:
-        "For the quickest reply, you can also message us on WhatsApp.",
+        "WhatsApp opened with your message. Our team will reply there shortly.",
     },
   },
 
@@ -123,11 +123,11 @@ export const pagesData = {
     sections: [
       {
         title: "Information we use",
-        body: "When you use the demo account, cart, or checkout, information is stored locally in your browser. This may include your email, cart items, theme preference, and delivery details entered for a WhatsApp order.",
+        body: "Browsing this shop does not require an account. Your basket and theme preference are stored locally in your browser, and any delivery details you type are used only to build the WhatsApp message you choose to send. A separate staff-only sign-in stores a short-lived session token in the browser of an authorised administrator.",
       },
       {
         title: "How we use it",
-        body: "We use this information to keep your account session and cart working, calculate your order, and prepare the message you choose to send through WhatsApp.",
+        body: "We use this information to keep your basket working, display the current catalogue, calculate your order summary, and prepare the message you send through WhatsApp. Review names and comments you submit are published on the product page.",
       },
       {
         title: "Payments and sharing",
@@ -135,7 +135,7 @@ export const pagesData = {
       },
       {
         title: "Your choices",
-        body: "You can clear local data through your browser settings, remove items from your cart, or contact us at hello@atozkids.com with privacy questions.",
+        body: "You can clear local data through your browser settings, remove items from your basket, or contact us at hello@atozkids.com with privacy questions.",
       },
     ],
   },

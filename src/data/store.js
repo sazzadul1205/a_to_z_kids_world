@@ -24,21 +24,19 @@ export const storeData = {
 
   footerColumns: [
     {
-      title: "Company",
+      title: "Explore",
       links: [
         { name: "About Us", href: "/about" },
-        { name: "Careers", href: "/careers" },
-        { name: "Blog", href: "/blog" },
-        { name: "Press", href: "/press" },
+        { name: "All Toys", href: "/shop" },
+        { name: "Contact", href: "/contact" },
       ],
     },
     {
-      title: "Support",
+      title: "Help",
       links: [
-        { name: "Help Center", href: "/help" },
-        { name: "Returns", href: "/returns" },
-        { name: "Shipping", href: "/shipping" },
-        { name: "FAQ", href: "/faq" },
+        { name: "Delivery & Returns", href: "/terms" },
+        { name: "Safety & Privacy", href: "/privacy" },
+        { name: "Site Map", href: "/sitemap" },
       ],
     },
     {
@@ -46,7 +44,7 @@ export const storeData = {
       links: [
         { name: "Privacy Policy", href: "/privacy" },
         { name: "Terms of Service", href: "/terms" },
-        { name: "Cookie Policy", href: "/cookies" },
+        { name: "Cookie Policy", href: "/privacy" },
       ],
     },
   ],
@@ -68,6 +66,6 @@ export const storeData = {
   },
 
   checkout: {
-    shippingFee: 4.99,
+    shippingFee: 60,
   },
 };

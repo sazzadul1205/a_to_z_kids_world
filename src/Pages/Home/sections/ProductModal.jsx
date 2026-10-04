@@ -1,12 +1,22 @@
-import { useEffect } from "react";
-import { X, Check, ShieldCheck, Star, Truck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Check, ShieldCheck, Star, Truck, Loader2, MessageSquarePlus } from "lucide-react";
 import { formatBDT } from "../../../lib/currency";
+import { reviewsApi } from "../../../lib/api";
+import { useProductReviews } from "../../../hooks/useProductReviews";
+import { starsForRating } from "../../../lib/presentation";
+
+const EMPTY_DRAFT = { name: "", rating: 5, comment: "" };
+
 const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
+  const [submitState, setSubmitState] = useState({ status: "idle", error: null });
+  const { reviews, summary, status, reload } = useProductReviews(product?._id);
+
   useEffect(() => {
     if (!product) return undefined;
 
-    const handleEscape = (e) => {
-      if (e.key === "Escape") onClose();
+    const handleEscape = (event) => {
+      if (event.key === "Escape") onClose();
     };
     const previousOverflow = document.body.style.overflow;
 
@@ -21,6 +31,28 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
 
   if (!product) return null;
 
+  const average = Number(summary?.averageRating ?? 0);
+  const count = Number(summary?.count ?? 0);
+  const isSoldOut = product.stock <= 0;
+
+  const handleSubmitReview = async (event) => {
+    event.preventDefault();
+    setSubmitState({ status: "submitting", error: null });
+    try {
+      await reviewsApi.create({
+        productId: product._id,
+        name: draft.name.trim(),
+        rating: Number(draft.rating),
+        comment: draft.comment.trim(),
+      });
+      setDraft(EMPTY_DRAFT);
+      setSubmitState({ status: "sent", error: null });
+      reload();
+    } catch (err) {
+      setSubmitState({ status: "error", error: err.message });
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity"
@@ -28,7 +60,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
       role="presentation"
     >
       <div
-        className="relative grid max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-3xl bg-surface shadow-2xl animate-in fade-in zoom-in-95 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] md:grid-cols-[0.85fr_1.15fr] md:grid-rows-1"
+        className="relative grid max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-3xl bg-surface shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] md:grid-cols-[0.85fr_1.15fr] md:grid-rows-1"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
@@ -58,30 +90,41 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
           >
             {product.name}
           </h2>
+
           <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-accent-900">
-            <Star className="h-4 w-4 fill-accent-800 text-accent-800" />
-            {product.rating}{" "}
-            <span className="font-normal text-text-muted">
-              ({product.reviews})
+            <span className="flex">
+              {starsForRating(average).map((filled, index) => (
+                <Star
+                  key={index}
+                  className={`h-4 w-4 ${filled ? "fill-accent-800 text-accent-800" : "text-border"}`}
+                />
+              ))}
             </span>
+            {count > 0 ? average.toFixed(1) : "No ratings yet"}
+            <span className="font-normal text-text-muted">({count})</span>
           </div>
-          <p className="mt-4 leading-relaxed text-text-muted">
-            {product.description}
-          </p>
+
+          <p className="mt-4 leading-relaxed text-text-muted">{product.description}</p>
+
           <div className="mt-4 space-y-2 rounded-2xl bg-surface-soft p-3 text-sm text-text-muted">
-            <div className="flex items-center gap-3 font-semibold text-text">
-              <Check className="h-5 w-5 text-primary-600" />
-              Suitable for {product.age.toLowerCase()}
-            </div>
-            <div className="flex items-center gap-3">
-              <SparkleIcon />
-              Includes {product.includes}
-            </div>
+            {product.age && (
+              <div className="flex items-center gap-3 font-semibold text-text">
+                <Check className="h-5 w-5 text-primary-600" />
+                Suitable for {product.age.toLowerCase()}
+              </div>
+            )}
+            {product.includes && (
+              <div className="flex items-center gap-3">
+                <Star className="h-5 w-5 text-primary-600" />
+                Includes {product.includes}
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <Truck className="h-5 w-5 text-secondary-800" />
               Free delivery on this discovery
             </div>
           </div>
+
           <div className="mt-4 rounded-2xl border border-border bg-surface-soft p-3">
             <p className="text-xs font-bold uppercase tracking-widest text-text-muted">
               Our price
@@ -91,39 +134,161 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                 {formatBDT(product.price)}
               </span>
               <span className="text-right text-xs font-semibold text-text-muted">
-                Easy returns
-                <br />
-                within 30 days
+                {isSoldOut ? (
+                  <span className="text-primary-700">Out of stock</span>
+                ) : (
+                  <>
+                    {product.stock} in stock
+                    <br />
+                    Easy returns within 30 days
+                  </>
+                )}
               </span>
             </div>
           </div>
+
           <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-text-muted">
             <ShieldCheck className="h-4 w-4 text-primary-600" /> Safe checkout
             and quality-checked toys
           </div>
+
           <div className="mt-4 grid gap-2 sm:grid-cols-2 sm:gap-3">
             <button
               type="button"
+              disabled={isSoldOut}
               onClick={() => onAddToCart(product)}
-              className="w-full rounded-xl bg-primary-600 px-4 py-3 font-bold text-white transition hover:scale-105 hover:bg-primary-700"
+              className="w-full rounded-xl bg-primary-600 px-4 py-3 font-bold text-white transition hover:scale-105 hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
             >
-              Add to cart
+              {isSoldOut ? "Sold out" : "Add to cart"}
             </button>
-
             <button
               type="button"
+              disabled={isSoldOut}
               onClick={() => onBuyNow(product)}
-              className="w-full rounded-xl border border-border px-4 py-3 font-bold text-text transition hover:border-primary-300 hover:bg-primary-50"
+              className="w-full rounded-xl border border-border px-4 py-3 font-bold text-text transition hover:border-primary-300 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Buy now
             </button>
           </div>
+
+          <section className="mt-6 border-t border-border pt-5">
+            <h3 className="flex items-center gap-2 text-lg font-black text-text">
+              <MessageSquarePlus className="h-5 w-5 text-primary-600" />
+              What families say
+            </h3>
+
+            {status === "loading" && (
+              <p className="mt-4 flex items-center gap-2 text-sm text-text-muted">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading reviews...
+              </p>
+            )}
+
+            {status === "ready" && reviews.length === 0 && (
+              <p className="mt-4 text-sm text-text-muted">
+                No reviews yet. Be the first to share what you think.
+              </p>
+            )}
+
+            {status === "ready" && reviews.length > 0 && (
+              <ul className="mt-4 space-y-3">
+                {reviews.map((review) => (
+                  <li key={review._id} className="rounded-2xl bg-surface-soft p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-text">{review.name}</span>
+                      <span className="flex">
+                        {starsForRating(review.rating).map((filled, index) => (
+                          <Star
+                            key={index}
+                            className={`h-3 w-3 ${filled ? "fill-accent-800 text-accent-800" : "text-border"}`}
+                          />
+                        ))}
+                      </span>
+                    </div>
+                    {review.comment && (
+                      <p className="mt-1 text-sm leading-relaxed text-text-muted">
+                        {review.comment}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <form
+              onSubmit={handleSubmitReview}
+              className="mt-5 space-y-3 rounded-2xl border border-border p-4"
+            >
+              <p className="text-sm font-bold text-text">Leave a review</p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted">
+                    Your name
+                  </span>
+                  <input
+                    required
+                    minLength={2}
+                    maxLength={100}
+                    value={draft.name}
+                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                    placeholder="Alex Explorer"
+                    className="w-full rounded-xl border border-border bg-surface-soft px-3 py-2 text-sm text-text outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted">
+                    Rating
+                  </span>
+                  <select
+                    value={draft.rating}
+                    onChange={(e) => setDraft({ ...draft, rating: e.target.value })}
+                    className="w-full rounded-xl border border-border bg-surface-soft px-3 py-2 text-sm font-semibold text-text outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                  >
+                    {[5, 4, 3, 2, 1].map((value) => (
+                      <option key={value} value={value}>
+                        {value} star{value > 1 ? "s" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted">
+                  Comment
+                </span>
+                <textarea
+                  rows={3}
+                  maxLength={1000}
+                  value={draft.comment}
+                  onChange={(e) => setDraft({ ...draft, comment: e.target.value })}
+                  placeholder="What did your little one think?"
+                  className="w-full rounded-xl border border-border bg-surface-soft px-3 py-2 text-sm text-text outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                />
+              </label>
+
+              {submitState.error && (
+                <p className="text-sm font-semibold text-primary-700">{submitState.error}</p>
+              )}
+              {submitState.status === "sent" && (
+                <p className="text-sm font-semibold text-secondary-1000">
+                  Thanks! Your review has been published.
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitState.status === "submitting"}
+                className="w-full rounded-xl bg-secondary-900 px-4 py-2.5 font-bold text-white transition hover:bg-secondary-1000 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitState.status === "submitting" ? "Publishing..." : "Publish review"}
+              </button>
+            </form>
+          </section>
         </div>
       </div>
     </div>
   );
 };
-
-const SparkleIcon = () => <Star className="h-5 w-5 text-primary-600" />;
 
 export default ProductModal;

@@ -1,8 +1,41 @@
+import { useMemo } from "react";
 import { ShoppingBasket, Sparkles } from "lucide-react";
-import { formatBDT } from "../../../lib/currency";import { pagesData } from "../../../data/pages";
+import { formatBDT } from "../../../lib/currency";
+import { pagesData } from "../../../data/pages";
+import { toneForIndex } from "../../../lib/presentation";
 
-const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
+const ProductsSection = ({ products, selectedCategory, onProductClick, status = "ready" }) => {
   const copy = pagesData.products;
+
+  const skeletonItems = useMemo(
+    () => Array.from({ length: 6 }, (_, index) => ({ _id: `skeleton-${index}` })),
+    [],
+  );
+
+  if (status === "loading") {
+    return (
+      <section id="products" className="bg-surface-soft px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {skeletonItems.map((item) => (
+              <div
+                key={item._id}
+                className="animate-pulse overflow-hidden rounded-3xl border border-border bg-surface"
+              >
+                <div className="h-64 bg-surface-soft" />
+                <div className="space-y-3 p-5">
+                  <div className="h-3 w-24 rounded bg-surface-soft" />
+                  <div className="h-5 w-3/4 rounded bg-surface-soft" />
+                  <div className="h-3 w-full rounded bg-surface-soft" />
+                  <div className="h-8 w-32 rounded bg-surface-soft" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="products" className="bg-surface-soft px-4 py-16 sm:px-6 lg:px-8">
@@ -22,47 +55,60 @@ const ProductsSection = ({ products, selectedCategory, onProductClick }) => {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <article
-              key={product.name}
-              className="group overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition-all hover:-translate-y-2 hover:shadow-xl"
-            >
-              <div className={`relative ${product.tone} p-4`}>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-56 w-full rounded-2xl object-cover transition-transform group-hover:scale-105"
-                />
-                <span className="absolute left-5 top-5 rounded-full bg-surface/90 px-3 py-1 text-xs font-bold text-text backdrop-blur-sm">
-                  {product.age}
-                </span>
-              </div>
-              <div className="p-5">
-                <p className="text-xs font-bold uppercase tracking-widest text-primary-600">
-                  {product.category}
-                </p>
-                <h3 className="mt-2 text-xl font-black text-text">{product.name}</h3>
-                <p className="mt-2 min-h-12 text-sm leading-relaxed text-text-muted">
-                  {product.description}
-                </p>
-                <div className="mt-5 flex items-center justify-between gap-3">
-                  <span className="text-2xl font-black text-secondary-1000">
-                    {formatBDT(product.price)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onProductClick(product)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-surface transition hover:scale-105 hover:bg-primary-700 active:scale-95"
-                  >
-                    <ShoppingBasket className="h-4 w-4" /> Buy now
-                  </button>
+          {products.map((product, index) => {
+            const isSoldOut = product.stock <= 0;
+            return (
+              <article
+                key={product._id}
+                className="group overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition-all hover:-translate-y-2 hover:shadow-xl"
+              >
+                <div className={`relative ${toneForIndex(index)} p-4`}>
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    loading="lazy"
+                    className="h-56 w-full rounded-2xl object-cover transition-transform group-hover:scale-105"
+                  />
+                  {product.age && (
+                    <span className="absolute left-5 top-5 rounded-full bg-surface/90 px-3 py-1 text-xs font-bold text-text backdrop-blur-sm">
+                      {product.age}
+                    </span>
+                  )}
+                  {isSoldOut && (
+                    <span className="absolute right-5 top-5 rounded-full bg-text/85 px-3 py-1 text-xs font-bold text-surface backdrop-blur-sm">
+                      Sold out
+                    </span>
+                  )}
                 </div>
-              </div>
-            </article>
-          ))}
+                <div className="p-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary-600">
+                    {product.category}
+                  </p>
+                  <h3 className="mt-2 text-xl font-black text-text">{product.name}</h3>
+                  <p className="mt-2 min-h-12 text-sm leading-relaxed text-text-muted">
+                    {product.description}
+                  </p>
+                  <div className="mt-5 flex items-center justify-between gap-3">
+                    <span className="text-2xl font-black text-secondary-1000">
+                      {formatBDT(product.price)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isSoldOut}
+                      onClick={() => onProductClick(product)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-surface transition hover:scale-105 hover:bg-primary-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
+                    >
+                      <ShoppingBasket className="h-4 w-4" />
+                      {isSoldOut ? "Sold out" : "Buy now"}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
-        {products.length === 0 && (
+        {products.length === 0 && status !== "loading" && (
           <div className="flex flex-col items-center justify-center py-16 text-center text-text-muted">
             <Sparkles className="h-12 w-12 text-accent-500" />
             <p className="mt-4 text-lg font-bold text-text">{copy.emptyTitle}</p>

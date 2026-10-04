@@ -19,9 +19,12 @@ const Checkout = () => {
   const handleWhatsAppOrder = (event) => {
     event.preventDefault();
     const orderLines = items
-      .map((item) => `${item.name} x${item.quantity} - ${formatBDT(item.price)}`)
+      .map(
+        (item) =>
+          `• ${item.name} x${item.quantity} - ${formatBDT(toBDTAmount(item.price) * item.quantity)} (ref ${item._id})`,
+      )
       .join("\n");
-    const message = `Hello! I would like to place an order.\n\n${orderLines}\n\nTotal: ${formatBDT(total)}\nDelivery to: ${address.name}, ${address.line}, ${address.city}, ${address.postal}`;
+    const message = `Hello! I would like to place an order.\n\n${orderLines}\n\nSubtotal: ${formatBDT(subtotal)}\nDelivery: ${formatBDT(shipping)}\nTotal: ${formatBDT(total)}\n\nDeliver to: ${address.name}, ${address.line}, ${address.city}, ${address.postal}`;
     window.open(createWhatsAppUrl(message), "_blank", "noopener,noreferrer");
     clearCart();
     setIsComplete(true);
@@ -118,7 +121,7 @@ const Checkout = () => {
             ) : (
               <div className="mt-5 space-y-4">
                 {items.map((item) => (
-                  <div key={item.name} className="flex min-w-0 gap-3">
+                  <div key={item._id} className="flex min-w-0 gap-3">
                     <img src={item.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-text">{item.name}</p>
@@ -127,7 +130,7 @@ const Checkout = () => {
                           <button
                             type="button"
                             aria-label={`Decrease ${item.name} quantity`}
-                            onClick={() => updateQuantity(item.name, item.quantity - 1)}
+                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
                             className="p-1 hover:bg-secondary-100"
                           >
                             <Minus className="h-3 w-3" />
@@ -136,8 +139,9 @@ const Checkout = () => {
                           <button
                             type="button"
                             aria-label={`Increase ${item.name} quantity`}
-                            onClick={() => updateQuantity(item.name, item.quantity + 1)}
-                            className="p-1 hover:bg-secondary-100"
+                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                            disabled={item.quantity >= item.stock}
+                            className="p-1 hover:bg-secondary-100 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <Plus className="h-3 w-3" />
                           </button>

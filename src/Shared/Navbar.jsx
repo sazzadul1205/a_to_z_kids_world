@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Search, Menu, X, ShoppingBasket, Sparkles, Moon, Sun } from "lucide-react";
 
-import { productsData } from "../data/products";
 import { storeData } from "../data/store";
 import { formatBDT } from "../lib/currency";
 import { useTheme } from "../context/theme/useTheme";
+import { useCatalog } from "../context/catalog/useCatalog";
 
 const Navbar = ({ onCartClick, cartCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,6 +13,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef(null);
   const { isDark, toggleTheme } = useTheme();
+  const { products } = useCatalog();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,12 +27,12 @@ const Navbar = ({ onCartClick, cartCount }) => {
   const matchingProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return [];
-    return productsData
+    return products
       .filter((p) =>
         `${p.name} ${p.category} ${p.description}`.toLowerCase().includes(query)
       )
       .slice(0, 5);
-  }, [search]);
+  }, [products, search]);
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -172,7 +173,7 @@ const SearchResults = ({ products, onSelect }) => {
     <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-surface p-2 text-left shadow-xl">
       {products.map((product) => (
         <button
-          key={product.name}
+          key={product._id}
           type="button"
           onClick={() => onSelect(product)}
           className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-primary-50"

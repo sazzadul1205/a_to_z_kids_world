@@ -9,11 +9,13 @@ import CartDrawer from "../Shared/CartDrawer";
 const LayoutContent = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { itemCount } = useCart();
-  const location = useLocation();
+const location = useLocation();
 
+  // Only on path changes: Shop rewrites its query string while typing, and
+  // Home scrolls to the catalogue itself when a category is picked.
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen flex-col bg-surface text-text transition-colors duration-300">

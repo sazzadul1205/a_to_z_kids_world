@@ -1,9 +1,8 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { ordersApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { formatBDT } from "../../lib/currency";
-import { useResource } from "../../hooks/useResource";
+import { useOrderMutations, useOrdersQuery } from "../../hooks/useAdminQueries";
 import {
   AdminEmpty,
   AdminError,
@@ -19,17 +18,17 @@ const OrdersAdmin = () => {
   const [busyId, setBusyId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
-  const fetcher = useCallback(() => ordersApi.list(), []);
-  const { status, error, data: orders, reload } = useResource(fetcher);
+  const { status, error, data, refetch } = useOrdersQuery();
+  const { updateStatus, remove } = useOrderMutations();
 
   const productById = new Map(products.map((product) => [String(product._id), product]));
 
+  // Invalidation is handled by the mutation, so this only reports the error.
   const runAction = async (orderId, action) => {
     setBusyId(orderId);
     setActionError(null);
     try {
       await action();
-      await reload();
     } catch (err) {
       setActionError(err);
     } finally {
@@ -39,17 +38,17 @@ const OrdersAdmin = () => {
 
   const handleStatusChange = (order, nextStatus) => {
     if (nextStatus === order.status) return;
-    return runAction(order._id, () => ordersApi.updateStatus(order._id, nextStatus));
+    return runAction(order._id, () => updateStatus.mutateAsync({ id: order._id, status: nextStatus }));
   };
 
   const handleDelete = (order) => {
     if (!window.confirm("Delete this order? Stock will be returned to the product.")) return;
-    return runAction(order._id, () => ordersApi.remove(order._id));
+    return runAction(order._id, () => remove.mutateAsync(order._id));
   };
 
-  if (status === "loading") return <AdminLoader label="Loading orders..." />;
+  if (status === "pending") return <AdminLoader label="Loading orders..." />;
 
-  const rows = orders ?? [];
+  const rows = data ?? [];
   const sorted = [...rows].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
@@ -62,7 +61,7 @@ const OrdersAdmin = () => {
       {(actionError || error) && (
         <AdminError
           message={actionError?.message || error?.message || "Something went wrong."}
-          onRetry={reload}
+          onRetry={refetch}
         />
       )}
 

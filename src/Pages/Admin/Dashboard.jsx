@@ -1,9 +1,7 @@
-import { useCallback } from "react";
 import { Link } from "react-router";
-import { ordersApi, reviewsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { formatBDT } from "../../lib/currency";
-import { useResource } from "../../hooks/useResource";
+import { useOrdersQuery, useReviewsQuery } from "../../hooks/useAdminQueries";
 import {
   AdminEmpty,
   AdminError,
@@ -16,33 +14,26 @@ const Dashboard = () => {
   const { products, categories, status: catalogStatus, error: catalogError, reload: reloadCatalog } =
     useCatalog();
 
-  const fetcher = useCallback(
-    () =>
-      Promise.all([ordersApi.list(), reviewsApi.list()]).then(([orders, reviews]) => ({
-        orders: orders ?? [],
-        reviews: reviews ?? [],
-      })),
-    [],
-  );
-
-  const {
-    status,
-    error,
-    data,
-    reload: reloadActivity,
-  } = useResource(fetcher);
+  // The same hooks the Orders and Reviews screens use, so the dashboard reads
+  // their cached entries instead of issuing its own combined request. Landing on
+  // the dashboard and then opening either screen costs no extra round trips.
+  const ordersQuery = useOrdersQuery();
+  const reviewsQuery = useReviewsQuery();
 
   const reloadAll = () => {
     reloadCatalog();
-    reloadActivity();
+    ordersQuery.refetch();
+    reviewsQuery.refetch();
   };
 
-  if (catalogStatus === "loading" || status === "loading") {
+  const error = ordersQuery.error ?? reviewsQuery.error ?? null;
+
+  if (catalogStatus === "loading" || ordersQuery.isPending || reviewsQuery.isPending) {
     return <AdminLoader label="Loading your dashboard..." />;
   }
 
-  const orders = data?.orders ?? [];
-  const reviews = data?.reviews ?? [];
+  const orders = ordersQuery.data ?? [];
+  const reviews = reviewsQuery.data ?? [];
 
   const outOfStock = products.filter((product) => product.stock <= 0);
   const lowStock = products.filter((product) => product.stock > 0 && product.stock <= 5);

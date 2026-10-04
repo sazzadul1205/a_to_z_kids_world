@@ -1,9 +1,8 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Loader2, Save, Trash2 } from "lucide-react";
-import { reviewsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { starsForRating } from "../../lib/presentation";
-import { useResource } from "../../hooks/useResource";
+import { useReviewMutations, useReviewsQuery } from "../../hooks/useAdminQueries";
 import {
   AdminEmpty,
   AdminError,
@@ -15,49 +14,42 @@ const ReviewsAdmin = () => {
   const { products } = useCatalog();
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState({ rating: 5, comment: "" });
-  const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
-  const fetcher = useCallback(() => reviewsApi.list(), []);
-  const { status, error, data, reload } = useResource(fetcher);
+  const { status, error, data, refetch } = useReviewsQuery();
+  const { update, remove } = useReviewMutations();
 
   const reviews = data ?? [];
+  const busy = update.isPending || remove.isPending;
   const productNames = new Map(products.map((product) => [String(product._id), product.name]));
 
   const handleSave = async (event, review) => {
     event.preventDefault();
-    setBusy(true);
     setActionError(null);
     try {
-      await reviewsApi.update(review._id, {
+      await update.mutateAsync({
+        id: review._id,
         rating: Number(draft.rating),
         comment: draft.comment.trim(),
       });
       setEditingId(null);
-      await reload();
     } catch (err) {
       setActionError(err);
-    } finally {
-      setBusy(false);
     }
   };
 
   const handleDelete = async (review) => {
     if (!window.confirm(`Delete the review by ${review.name}?`)) return;
-    setBusy(true);
     setActionError(null);
     try {
-      await reviewsApi.remove(review._id);
+      await remove.mutateAsync(review._id);
       if (editingId === review._id) setEditingId(null);
-      await reload();
     } catch (err) {
       setActionError(err);
-    } finally {
-      setBusy(false);
     }
   };
 
-  if (status === "loading") return <AdminLoader label="Loading reviews..." />;
+  if (status === "pending") return <AdminLoader label="Loading reviews..." />;
 
   return (
     <div className="space-y-8">
@@ -67,7 +59,7 @@ const ReviewsAdmin = () => {
       </header>
 
       {(actionError || error) && (
-        <AdminError message={actionError?.message || error?.message || "Something went wrong."} onRetry={reload} />
+        <AdminError message={actionError?.message || error?.message || "Something went wrong."} onRetry={refetch} />
       )}
 
       <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">

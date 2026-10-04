@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
-import { productsApi, resolveImageUrl, uploadsApi } from "../../lib/api";
+import { useMutation } from "@tanstack/react-query";
+import { resolveImageUrl, uploadsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
+import { useProductMutations } from "../../hooks/useAdminQueries";
 import { formatBDT } from "../../lib/currency";
 import {
   AdminEmpty,
@@ -41,11 +43,18 @@ const ProductsAdmin = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(emptyDraft);
-  const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState(null);
   const fileInputRef = useRef(null);
+
+  const { create, update, remove } = useProductMutations();
+
+  // Uploading does not touch the catalogue, so it invalidates nothing; it only
+  // needs to report whether it is in flight.
+  const upload = useMutation({ mutationFn: (file) => uploadsApi.image(file) });
+
+  const busy = create.isPending || update.isPending || remove.isPending;
+  const uploading = upload.isPending;
 
   // The backend requires a categoryId, so fall back to the first one rather
   // than waiting for the draft to be filled in.
@@ -84,21 +93,17 @@ const ProductsAdmin = () => {
     event.target.value = "";
     if (!file) return;
 
-    setUploading(true);
     setFormError(null);
     try {
-      const result = await uploadsApi.image(file);
+      const result = await upload.mutateAsync(file);
       setDraft((current) => ({ ...current, image: result.url }));
     } catch (err) {
       setFormError(`Upload failed: ${err.message}`);
-    } finally {
-      setUploading(false);
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setBusy(true);
     setFormError(null);
     setFieldErrors(null);
 
@@ -116,30 +121,23 @@ const ProductsAdmin = () => {
     };
 
     try {
-      if (editingId) await productsApi.update(editingId, payload);
-      else await productsApi.create(payload);
-      await reload();
+      if (editingId) await update.mutateAsync({ id: editingId, ...payload });
+      else await create.mutateAsync(payload);
       closeForm();
     } catch (err) {
       setFormError(err.message);
       setFieldErrors(err.errors || null);
-    } finally {
-      setBusy(false);
     }
   };
 
   const handleDelete = async (product) => {
     if (!window.confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
 
-    setBusy(true);
     try {
-      await productsApi.remove(product._id);
+      await remove.mutateAsync(product._id);
       if (editingId === product._id) closeForm();
-      await reload();
     } catch (err) {
       setFormError(err.message);
-    } finally {
-      setBusy(false);
     }
   };
 

@@ -1,7 +1,6 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { KeyRound, Loader2, Plus, Save, ShieldCheck, Trash2, UserRound } from "lucide-react";
-import { usersApi } from "../../lib/api";
-import { useResource } from "../../hooks/useResource";
+import { useUserMutations, useUsersQuery } from "../../hooks/useAdminQueries";
 import { useAuth } from "../../Shared/useAuth";
 import {
   AdminEmpty,
@@ -28,8 +27,8 @@ const UsersAdmin = () => {
   const [passwordFor, setPasswordFor] = useState(null);
   const [passwordDraft, setPasswordDraft] = useState(EMPTY_PASSWORD);
 
-  const fetcher = useCallback(() => usersApi.list(), []);
-  const { status, error, data, reload } = useResource(fetcher);
+  const { status, error, data, refetch } = useUsersQuery();
+  const { create, update, remove } = useUserMutations();
   const users = data ?? [];
 
   const resetMessages = () => {
@@ -38,7 +37,8 @@ const UsersAdmin = () => {
   };
 
   // Runs one mutation, keeping the row-level spinner and surfacing the API's
-  // own message — including the last-Admin guard, which is a 409.
+  // own message — including the last-Admin guard, which is a 409. Cache
+  // invalidation is the mutation's job, so this does not refetch by hand.
   const run = async (id, work, { onDone } = {}) => {
     setBusyId(id);
     resetMessages();
@@ -60,17 +60,14 @@ const UsersAdmin = () => {
         : `Promote ${user.name} to Admin? They will get full staff access.`;
     if (!window.confirm(message)) return;
 
-    return run(user._id, () => usersApi.update(user._id, { role: nextRole }), {
-      onDone: reload,
-    });
+    return run(user._id, () => update.mutateAsync({ id: user._id, role: nextRole }));
   };
 
   const handleDelete = (user) => {
     if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) return;
 
-    return run(user._id, () => usersApi.remove(user._id), {
-      onDone: async () => {
-        await reload();
+    return run(user._id, () => remove.mutateAsync(user._id), {
+      onDone: () => {
         if (passwordFor === user._id) setPasswordFor(null);
       },
     });
@@ -92,8 +89,8 @@ const UsersAdmin = () => {
 
     const isSelf = String(user._id) === String(currentUser?._id);
 
-    await run(user._id, () => usersApi.update(user._id, { password: nextPassword }), {
-      onDone: async () => {
+    await run(user._id, () => update.mutateAsync({ id: user._id, password: nextPassword }), {
+      onDone: () => {
         setPasswordFor(null);
         setPasswordDraft(EMPTY_PASSWORD);
         if (isSelf) {
@@ -103,7 +100,6 @@ const UsersAdmin = () => {
           return;
         }
         setSavedMessage(`Password updated for ${user.name}.`);
-        await reload();
       },
     });
   };
@@ -113,23 +109,22 @@ const UsersAdmin = () => {
     resetMessages();
 
     await run("create", () =>
-      usersApi.create({
+      create.mutateAsync({
         name: createDraft.name.trim(),
         email: createDraft.email.trim(),
         password: createDraft.password,
         role: createDraft.role,
       }),
     {
-      onDone: async () => {
+      onDone: () => {
         setCreateOpen(false);
         setCreateDraft(EMPTY_CREATE);
         setSavedMessage(`Created ${createDraft.email.trim()}.`);
-        await reload();
       },
     });
   };
 
-  if (status === "loading") return <AdminLoader label="Loading staff accounts..." />;
+  if (status === "pending") return <AdminLoader label="Loading staff accounts..." />;
 
   return (
     <div className="space-y-8">
@@ -163,7 +158,7 @@ const UsersAdmin = () => {
         </p>
       )}
       {error && !actionError && (
-        <AdminError message={error.message || "Could not load staff accounts."} onRetry={reload} />
+        <AdminError message={error.message || "Could not load staff accounts."} onRetry={refetch} />
       )}
 
       {createOpen && (

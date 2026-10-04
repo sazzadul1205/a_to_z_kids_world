@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
-import { categoriesApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
+import { useCategoryMutations } from "../../hooks/useAdminQueries";
 import { iconForCategoryName } from "../../lib/presentation";
 import {
   AdminEmpty,
@@ -18,11 +18,13 @@ const emptyDraft = { name: "", description: "", icon: "" };
 
 const CategoriesAdmin = () => {
   const { categories, products, status, error, reload } = useCatalog();
+  const { create, update, remove } = useCategoryMutations();
   const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState(null);
-  const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState(null);
+
+  const busy = create.isPending || update.isPending || remove.isPending;
 
   const productCountByCategory = new Map();
   for (const product of products) {
@@ -37,9 +39,10 @@ const CategoriesAdmin = () => {
     setFieldErrors(null);
   };
 
+  // The mutations invalidate the catalogue, so a successful write needs no
+  // explicit refetch here.
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setBusy(true);
     setFormError(null);
     setFieldErrors(null);
 
@@ -50,15 +53,12 @@ const CategoriesAdmin = () => {
     };
 
     try {
-      if (editingId) await categoriesApi.update(editingId, payload);
-      else await categoriesApi.create(payload);
-      await reload();
+      if (editingId) await update.mutateAsync({ id: editingId, ...payload });
+      else await create.mutateAsync(payload);
       resetForm();
     } catch (err) {
       setFormError(err.message);
       setFieldErrors(err.errors || null);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -71,16 +71,12 @@ const CategoriesAdmin = () => {
 
     if (!window.confirm(warning)) return;
 
-    setBusy(true);
     setFormError(null);
     try {
-      await categoriesApi.remove(category._id);
+      await remove.mutateAsync(category._id);
       if (editingId === category._id) resetForm();
-      await reload();
     } catch (err) {
       setFormError(err.message);
-    } finally {
-      setBusy(false);
     }
   };
 

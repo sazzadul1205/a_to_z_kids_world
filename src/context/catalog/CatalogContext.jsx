@@ -1,36 +1,31 @@
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { CatalogContext } from "./catalog-context";
-import { categoriesApi, productsApi } from "../../lib/api";
 import { makeCategoryLookup, mapProduct } from "../../lib/catalog";
-import { useResource } from "../../hooks/useResource";
+import { useCatalogQuery } from "../../hooks/useCatalogQuery";
 
+// Kept as a context so the nine components that read the catalogue do not each
+// need to know about query keys, and so the status/error/reload shape they
+// already render against stays the same.
 export function CatalogProvider({ children }) {
-  const fetcher = useCallback(async ({ signal }) => {
-    const [categoryRows, productRows] = await Promise.all([
-      categoriesApi.list({}, { signal }),
-      productsApi.list({}, { signal }),
-    ]);
-    return { categories: categoryRows ?? [], products: productRows ?? [] };
-  }, []);
-
-  const {
-    status,
-    error,
-    data,
-    reload,
-  } = useResource(fetcher);
+  const { data, isPending, isError, error, refetch, isFetching } = useCatalogQuery();
 
   const value = useMemo(() => {
     const categories = data?.categories ?? [];
     const lookup = makeCategoryLookup(categories);
+
+    // isFetching while data is present means a background refresh, which should
+    // read as "ready" rather than blanking the grid back to skeletons.
+    const status = isError ? "error" : isPending ? "loading" : "ready";
+
     return {
       categories,
       products: (data?.products ?? []).map((raw) => mapProduct(raw, lookup)),
       status,
       error,
-      reload,
+      reload: refetch,
+      isRefreshing: isFetching && !isPending,
     };
-  }, [data, status, error, reload]);
+  }, [data, isPending, isError, isFetching, error, refetch]);
 
   return <CatalogContext.Provider value={value}>{children}</CatalogContext.Provider>;
 }

@@ -1,3 +1,4 @@
+import axios from "axios";
 import { clearToken, getToken } from "./authToken";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/+$/, "");
@@ -11,92 +12,61 @@ export class ApiError extends Error {
   }
 }
 
-function buildUrl(path, params) {
-  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
-  if (!params) return url;
+export const api = axios.create({
+  baseURL: API_BASE,
+  // The backend answers 401/403 with JSON; without this axios treats a 4xx as a
+  // success and hands back the raw error document.
+  validateStatus: (status) => status >= 200 && status < 300,
+});
 
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    // Only primitives become query values. Anything else (an AbortSignal passed
-    // into the params slot by mistake, an object, a function) is dropped rather
-    // than serialised into a junk query string.
-    if (!["string", "number", "boolean"].includes(typeof value)) continue;
-    if (value === "") continue;
-    search.set(key, String(value));
-  }
-  const query = search.toString();
-  return query ? `${url}?${query}` : url;
-}
+// Attach the session token to every request. Reading it here rather than at each
+// call site is what makes `auth: true` unnecessary.
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-async function readBody(response) {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-}
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const { response, config } = error;
 
-export async function apiFetch(path, { method = "GET", body, params, headers = {}, auth = false, signal } = {}) {
-  const requestHeaders = { ...headers };
-  const requestBody =
-    body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body);
-
-  if (requestBody !== undefined && !(body instanceof FormData)) {
-    requestHeaders["Content-Type"] = "application/json";
-  }
-
-  // Tracks whether this request actually carried a session, so a 401 can be
-  // attributed to an expired session rather than to the request itself.
-  let sentToken = false;
-  if (auth) {
-    const token = getToken();
-    if (token) {
-      requestHeaders.Authorization = `Bearer ${token}`;
-      sentToken = true;
+    // Cancelled requests are a normal part of query cancellation, not a failure
+    // to report. TanStack Query matches on this name to stay quiet.
+    if (axios.isCancel(error) || error.code === "ERR_CANCELED") {
+      return Promise.reject(error);
     }
-  }
 
-  let response;
-  try {
-    response = await fetch(buildUrl(path, params), {
-      method,
-      headers: requestHeaders,
-      body: requestBody,
-      signal,
-    });
-  } catch (err) {
-    if (err.name === "AbortError") throw err;
-    throw new ApiError("Could not reach the store. Check that the API is running.", {
-      status: 0,
-    });
-  }
+    if (!response) {
+      return Promise.reject(
+        new ApiError("Could not reach the store. Check that the API is running.", {
+          status: 0,
+        }),
+      );
+    }
 
-  if (response.status === 204) return null;
+    // Only a request that actually carried a token can have an expired session.
+    // A rejected sign-in must not wipe a different, still-valid one, and a
+    // public request that happens to 401 has no session to clear.
+    if (response.status === 401 && config?.headers?.Authorization) {
+      clearToken();
+    }
 
-  const payload = await readBody(response);
-
-  if (!response.ok) {
-    // An expired or revoked session should drop the admin session everywhere —
-    // but only when this request is what carried it. A rejected login must not
-    // wipe a different, still-valid session, and a public request that happens
-    // to 401 has no session to clear.
-    if (response.status === 401 && sentToken) clearToken();
-
+    const payload = response.data;
     const message =
       (payload && typeof payload === "object" && (payload.error || payload.message)) ||
       (typeof payload === "string" && payload) ||
       `Request failed with status ${response.status}`;
 
-    throw new ApiError(message, {
-      status: response.status,
-      errors: payload && typeof payload === "object" ? payload.errors ?? null : null,
-    });
-  }
-
-  return payload;
-}
+    return Promise.reject(
+      new ApiError(message, {
+        status: response.status,
+        errors: payload && typeof payload === "object" ? (payload.errors ?? null) : null,
+      }),
+    );
+  },
+);
 
 // Only absolute http(s) URLs are passed through untouched. Everything else —
 // including protocol-relative "//host" and "data:" payloads — is resolved
@@ -109,53 +79,52 @@ export function resolveImageUrl(value) {
 }
 
 export const authApi = {
-  login: (credentials) => apiFetch("/auth/login", { method: "POST", body: credentials }),
-  me: () => apiFetch("/auth/me", { auth: true }),
+  login: (credentials) => api.post("/auth/login", credentials),
+  me: (signal) => api.get("/auth/me", { signal }),
 };
 
 export const categoriesApi = {
-  list: (options) => apiFetch("/categories", options),
-  create: (data) => apiFetch("/categories", { method: "POST", body: data, auth: true }),
-  update: (id, data) => apiFetch(`/categories/${id}`, { method: "PUT", body: data, auth: true }),
-  remove: (id) => apiFetch(`/categories/${id}`, { method: "DELETE", auth: true }),
+  list: (signal) => api.get("/categories", { signal }),
+  create: (data) => api.post("/categories", data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  remove: (id) => api.delete(`/categories/${id}`),
 };
 
 export const productsApi = {
-  list: (params, options) => apiFetch("/products", { params, ...options }),
-  get: (id) => apiFetch(`/products/${id}`),
-  create: (data) => apiFetch("/products", { method: "POST", body: data, auth: true }),
-  update: (id, data) => apiFetch(`/products/${id}`, { method: "PUT", body: data, auth: true }),
-  remove: (id) => apiFetch(`/products/${id}`, { method: "DELETE", auth: true }),
+  list: (params, signal) => api.get("/products", { params, signal }),
+  get: (id, signal) => api.get(`/products/${id}`, { signal }),
+  create: (data) => api.post("/products", data),
+  update: (id, data) => api.put(`/products/${id}`, data),
+  remove: (id) => api.delete(`/products/${id}`),
 };
 
 export const reviewsApi = {
-  list: (params, options) => apiFetch("/reviews", { params, ...options }),
-  summary: (productId, options) =>
-    apiFetch(`/reviews/product/${productId}/summary`, options),
-  create: (data) => apiFetch("/reviews", { method: "POST", body: data }),
-  update: (id, data) => apiFetch(`/reviews/${id}`, { method: "PUT", body: data, auth: true }),
-  remove: (id) => apiFetch(`/reviews/${id}`, { method: "DELETE", auth: true }),
+  list: (params, signal) => api.get("/reviews", { params, signal }),
+  summary: (productId, signal) => api.get(`/reviews/product/${productId}/summary`, { signal }),
+  create: (data) => api.post("/reviews", data),
+  update: (id, data) => api.put(`/reviews/${id}`, data),
+  remove: (id) => api.delete(`/reviews/${id}`),
 };
 
 export const ordersApi = {
-  list: (params) => apiFetch("/orders", { params, auth: true }),
-  create: (data) => apiFetch("/orders", { method: "POST", body: data, auth: true }),
-  updateStatus: (id, status) =>
-    apiFetch(`/orders/${id}`, { method: "PUT", body: { status }, auth: true }),
-  remove: (id) => apiFetch(`/orders/${id}`, { method: "DELETE", auth: true }),
+  list: (params, signal) => api.get("/orders", { params, signal }),
+  create: (data) => api.post("/orders", data),
+  updateStatus: (id, status) => api.put(`/orders/${id}`, { status }),
+  remove: (id) => api.delete(`/orders/${id}`),
 };
 
 export const usersApi = {
-  list: () => apiFetch("/users", { auth: true }),
-  create: (data) => apiFetch("/users", { method: "POST", body: data, auth: true }),
-  update: (id, data) => apiFetch(`/users/${id}`, { method: "PUT", body: data, auth: true }),
-  remove: (id) => apiFetch(`/users/${id}`, { method: "DELETE", auth: true }),
+  list: (signal) => api.get("/users", { signal }),
+  create: (data) => api.post("/users", data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  remove: (id) => api.delete(`/users/${id}`),
 };
 
 export const uploadsApi = {
   image: (file) => {
     const form = new FormData();
     form.append("image", file);
-    return apiFetch("/upload/image", { method: "POST", body: form, auth: true });
+    // Let the browser set the multipart boundary itself.
+    return api.post("/upload/image", form);
   },
 };

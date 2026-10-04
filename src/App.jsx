@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 import { ThemeProvider } from "./context/theme/ThemeContext";
+import { AppQueryProvider } from "./context/query/AppQueryProvider";
 import { CatalogProvider } from "./context/catalog/CatalogContext";
 import { AuthProvider } from "./Shared/AuthContext";
 import Layout from "./Layouts/Layout";
@@ -20,9 +21,10 @@ import UsersAdmin from "./Pages/Admin/UsersAdmin";
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <CatalogProvider>
+    <AppQueryProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CatalogProvider>
           <BrowserRouter>
             <Routes>
               {/* Staff area. Deliberately unlinked from the storefront. */}
@@ -57,9 +59,10 @@ function App() {
               </Route>
             </Routes>
           </BrowserRouter>
-        </CatalogProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          </CatalogProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </AppQueryProvider>
   );
 }
 

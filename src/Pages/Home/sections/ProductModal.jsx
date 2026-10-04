@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { X, Check, ShieldCheck, Star, Truck, Loader2, MessageSquarePlus } from "lucide-react";
 import { formatBDT } from "../../../lib/currency";
 import { reviewsApi } from "../../../lib/api";
@@ -9,8 +10,25 @@ const EMPTY_DRAFT = { name: "", rating: 5, comment: "" };
 
 const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
   const [draft, setDraft] = useState(EMPTY_DRAFT);
-  const [submitState, setSubmitState] = useState({ status: "idle", error: null });
+  const [submitError, setSubmitError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
   const { reviews, summary, status, reload } = useProductReviews(product?._id);
+
+  // A new review changes both the list and the aggregate, so the mutation
+  // refreshes them instead of the component refetching by hand.
+  const submitReview = useMutation({
+    mutationFn: (review) => reviewsApi.create(review),
+    onSuccess: () => {
+      setDraft(EMPTY_DRAFT);
+      setSubmitted(true);
+      setSubmitError(null);
+      reload();
+    },
+    onError: (err) => {
+      setSubmitted(false);
+      setSubmitError(err.message);
+    },
+  });
 
   useEffect(() => {
     if (!product) return undefined;
@@ -35,22 +53,14 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
   const count = Number(summary?.count ?? 0);
   const isSoldOut = product.stock <= 0;
 
-  const handleSubmitReview = async (event) => {
+  const handleSubmitReview = (event) => {
     event.preventDefault();
-    setSubmitState({ status: "submitting", error: null });
-    try {
-      await reviewsApi.create({
-        productId: product._id,
-        name: draft.name.trim(),
-        rating: Number(draft.rating),
-        comment: draft.comment.trim(),
-      });
-      setDraft(EMPTY_DRAFT);
-      setSubmitState({ status: "sent", error: null });
-      reload();
-    } catch (err) {
-      setSubmitState({ status: "error", error: err.message });
-    }
+    submitReview.mutate({
+      productId: product._id,
+      name: draft.name.trim(),
+      rating: Number(draft.rating),
+      comment: draft.comment.trim(),
+    });
   };
 
   return (
@@ -77,7 +87,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
         <img
           src={product.image}
           alt={product.name}
-          className="h-36 w-full object-cover object-center sm:h-44 md:order-2 md:h-[430px]"
+          className="h-36 w-full object-cover object-center sm:h-44 md:order-2 md:h-107.5"
         />
 
         <div className="min-h-0 overflow-y-auto p-4 sm:order-1 sm:p-6 md:overflow-y-visible">
@@ -267,10 +277,10 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                 />
               </label>
 
-              {submitState.error && (
-                <p className="text-sm font-semibold text-primary-700">{submitState.error}</p>
+              {submitError && (
+                <p className="text-sm font-semibold text-primary-700">{submitError}</p>
               )}
-              {submitState.status === "sent" && (
+              {submitted && (
                 <p className="text-sm font-semibold text-secondary-1000">
                   Thanks! Your review has been published.
                 </p>
@@ -278,10 +288,10 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
 
               <button
                 type="submit"
-                disabled={submitState.status === "submitting"}
+                disabled={submitReview.isPending}
                 className="w-full rounded-xl bg-secondary-900 px-4 py-2.5 font-bold text-white transition hover:bg-secondary-1000 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitState.status === "submitting" ? "Publishing..." : "Publish review"}
+                {submitReview.isPending ? "Publishing..." : "Publish review"}
               </button>
             </form>
           </section>

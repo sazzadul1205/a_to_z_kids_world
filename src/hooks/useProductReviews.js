@@ -1,28 +1,41 @@
-import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { reviewsApi } from "../lib/api";
-import { useResource } from "./useResource";
+import { CATALOG_STALE_TIME, queryKeys } from "../lib/queryKeys";
 
-// Review summaries and lists live on separate endpoints, so they load together
-// and only once a product is actually open.
+// A product view needs both the list and the aggregate, and the badge shows the
+// count as soon as either lands, so they are separate cached queries rather than
+// one combined fetch. The previous implementation fetched them in one request
+// and waited for both.
 export function useProductReviews(productId) {
-  const fetcher = useCallback(
-    ({ signal }) =>
-      productId
-        ? Promise.all([
-            reviewsApi.list({ productId }, { signal }),
-            reviewsApi.summary(productId, { signal }),
-          ]).then(([reviews, summary]) => ({ reviews: reviews ?? [], summary }))
-        : Promise.resolve(null),
-    [productId],
-  );
+  const enabled = Boolean(productId);
 
-  const { status, error, data, reload } = useResource(fetcher);
+  const list = useQuery({
+    queryKey: queryKeys.productReviews(productId),
+    queryFn: ({ signal }) => reviewsApi.list({ productId }, signal),
+    enabled,
+    staleTime: CATALOG_STALE_TIME,
+  });
+
+  const summary = useQuery({
+    queryKey: queryKeys.reviewSummary(productId),
+    queryFn: ({ signal }) => reviewsApi.summary(productId, signal),
+    enabled,
+    staleTime: CATALOG_STALE_TIME,
+  });
+
+  const isPending = list.isPending || summary.isPending;
+  const isError = list.isError || summary.isError;
+  // Either list failing leaves the modal without a trustworthy rating, so the
+  // error is surfaced once rather than per query.
+  const error = list.error ?? summary.error ?? null;
 
   return {
-    reviews: data?.reviews ?? [],
-    summary: data?.summary ?? null,
-    status: productId ? status : "idle",
+    reviews: list.data ?? [],
+    summary: summary.data ?? null,
+    status: !enabled ? "idle" : isError ? "error" : isPending ? "loading" : "ready",
     error,
-    reload,
+    reload: async () => {
+      await Promise.all([list.refetch(), summary.refetch()]);
+    },
   };
 }

@@ -2,7 +2,18 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
-// https://vite.dev/config/
+// The API mounts its resources at the root (/products, /uploads, ...), so the
+// dev proxy strips the /api prefix before forwarding.
 export default defineConfig({
-  plugins: [react(), tailwindcss(),],
+  plugins: [react(), tailwindcss()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

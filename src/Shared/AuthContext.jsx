@@ -1,46 +1,66 @@
-import { useMemo, useState } from 'react';
-import { AuthContext } from './auth-context';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthContext } from "./auth-context";
+import { authApi } from "../lib/api";
+import { clearToken, getToken, onTokenChange, setToken } from "../lib/authToken";
+import { useResource } from "../hooks/useResource";
 
-const AUTH_STORAGE_KEY = 'a-to-z-kids-user';
-const ORDERS_STORAGE_KEY = 'a-to-z-kids-orders';
-
+// Admin-only session. The storefront has no shopper accounts: this provider
+// exists purely to guard the unlinked /admin routes.
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [orders, setOrders] = useState(() => {
-    try {
-      const savedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
-      return savedOrders ? JSON.parse(savedOrders) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [token, setTokenState] = useState(getToken);
+  const [sessionUser, setSessionUser] = useState(null);
 
-  const login = (email, method = 'email') => {
-    const nextUser = { email: email || 'google-user@demo.local', method };
-    setUser(nextUser);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-  };
+  // Revalidate a stored token on mount so a revoked account cannot linger.
+  const fetcher = useCallback(async () => {
+    if (!getToken()) return null;
+    const payload = await authApi.me();
+    return payload?.user ?? null;
+  }, []);
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-  };
+  const { data: validatedUser, status: validationStatus } = useResource(fetcher);
 
-  const saveOrder = (order) => {
-    setOrders((currentOrders) => {
-      const nextOrders = [{ ...order, id: `AZ-${Date.now()}` }, ...currentOrders];
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(nextOrders));
-      return nextOrders;
-    });
-  };
+  // The API client clears the token on a 401, so mirror that here. Holding the
+  // token in state means a cleared token also drops the validated user, which
+  // would otherwise stay cached and keep the session looking signed in.
+  useEffect(
+    () =>
+      onTokenChange((nextToken) => {
+        setTokenState(nextToken);
+        if (!nextToken) setSessionUser(null);
+      }),
+    [],
+  );
 
-  const value = useMemo(() => ({ user, login, logout, orders, saveOrder }), [orders, user]);
+  const user = token ? (sessionUser ?? validatedUser) : null;
+
+  const status = useMemo(() => {
+    if (user) return "signed-in";
+    return validationStatus === "loading" ? "loading" : "signed-out";
+  }, [user, validationStatus]);
+
+  const signIn = useCallback(async (email, password) => {
+    const payload = await authApi.login({ email, password });
+    setToken(payload.token);
+    setSessionUser(payload.user);
+    return payload.user;
+  }, []);
+
+  const signOut = useCallback(() => {
+    clearToken();
+    setSessionUser(null);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      status,
+      isAuthenticated: Boolean(user),
+      isAdmin: user?.role === "Admin",
+      signIn,
+      signOut,
+    }),
+    [user, status, signIn, signOut],
+  );
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

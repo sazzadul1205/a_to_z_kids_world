@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import { ThemeProvider } from "./context/theme/ThemeContext";
 import { AppQueryProvider } from "./context/query/AppQueryProvider";
 import { CatalogProvider } from "./context/catalog/CatalogContext";
+import { LanguageProvider } from "./context/language/LanguageProvider";
 import { AuthProvider } from "./Shared/AuthContext";
 import Layout from "./Layouts/Layout";
 import Home from "./Pages/Home/Home";
@@ -22,6 +23,7 @@ import UsersAdmin from "./Pages/Admin/UsersAdmin";
 function App() {
   return (
     <AppQueryProvider>
+      <LanguageProvider>
       <ThemeProvider>
         <AuthProvider>
           <CatalogProvider>
@@ -62,6 +64,7 @@ function App() {
           </CatalogProvider>
         </AuthProvider>
       </ThemeProvider>
+      </LanguageProvider>
     </AppQueryProvider>
   );
 }

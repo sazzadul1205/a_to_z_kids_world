@@ -172,10 +172,17 @@ export async function waitForGrid(page) {
 // Two things make a single click unreliable here. The list re-renders whenever a
 // mutation invalidates it, which can swap the button out from under the click so
 // that window.confirm never runs; and confirming needs the dialog answered
-// inside the handler, because the click cannot settle until it is. So each
-// attempt records whether the confirm actually appeared, and only a confirmed
-// click is counted as progress.
+// inside the handler, because the click cannot settle until it is.
+//
+// The whole attempt is retried, not just the click: a confirmed click whose
+// DELETE never lands is exactly as recoverable as one that never confirmed, and
+// treating only the first case as fatal would make this flake.
 export async function deleteAdminProduct(page, name, apiGet) {
+  const stillThere = async () => {
+    const list = await apiGet("/products");
+    return list.body.some((p) => p.name === name);
+  };
+
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await page.waitForLoadState("networkidle");
 
@@ -186,24 +193,29 @@ export async function deleteAdminProduct(page, name, apiGet) {
     };
     page.once("dialog", answerDialog);
 
-    await adminProductRow(page, name)
-      .getByRole("button", { name: /^delete$/i })
-      .click();
-    page.off("dialog", answerDialog);
+    try {
+      await adminProductRow(page, name)
+        .getByRole("button", { name: /^delete$/i })
+        .click();
+    } finally {
+      page.off("dialog", answerDialog);
+    }
 
     if (!confirmed) continue;
 
-    await expect
-      .poll(async () => {
-        const list = await apiGet("/products");
-        return list.body.some((p) => p.name === name);
-      }, { timeout: 15000 })
-      .toBe(false);
-
-    return;
+    // A delete refused with 429 leaves the row in place, so the check tolerates a
+    // few consecutive failures before giving up on this attempt.
+    try {
+      await expect
+        .poll(async () => !(await stillThere()), { timeout: 8000 })
+        .toBe(true);
+      return;
+    } catch {
+      // Retry the whole attempt.
+    }
   }
 
   throw new Error(
-    `delete of "${name}" did not reach the backend after 3 confirmed attempts`,
+    `delete of "${name}" did not reach the backend after 3 attempts`,
   );
 }

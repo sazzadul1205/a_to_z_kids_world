@@ -31,9 +31,10 @@ test.afterAll(async () => {
 
 test.describe("admin access", () => {
   test("the staff area is reachable directly but never linked publicly", async ({ page }) => {
-    await page.goto("/");
     // Every public page must stay free of staff links, so a visitor cannot
-    // stumble into the admin area from navigation.
+    // stumble into the admin area from navigation. The loop starts at "/" on
+    // purpose: navigating to the same URL twice in a row can have the second
+    // navigation interrupt the first, which reads as a spurious timeout.
     for (const path of ["/", "/shop", "/about", "/contact", "/sitemap"]) {
       await page.goto(path);
       const links = await page.locator('a[href^="/admin"]').count();

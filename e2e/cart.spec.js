@@ -1,4 +1,4 @@
-﻿import { test, expect } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { apiGet, openProduct, closeModal, productDialog, clearCart, recordRequests } from "./helpers.js";
 
 // The cart lives in localStorage and prices itself from the catalogue it fetched,

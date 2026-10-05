@@ -81,6 +81,37 @@ Categories and products load together in one query, because the storefront needs
 the category names to render any product. A product's rating list and its
 aggregate are separate queries, so the badge can appear as soon as either lands.
 
+### Theming
+
+Dark mode is a token swap, not a set of `dark:` overrides. `ThemeContext` toggles
+one class on `<html>` and `src/index.css` redefines the tokens.
+
+**The rule that matters: a token is either theme-dependent or it is not.** These
+four are deliberately identical in both themes, because each is used on a fill
+whose lightness does not change:
+
+| Token | Used for |
+| --- | --- |
+| `--color-ink-on-brand` | label on a saturated brand fill (never flips) |
+| `--color-ink-bright` | label on a bright chip, e.g. the sunny-yellow cart badge (never flips) |
+| `--color-scrim` | modal backdrop; must darken, so it cannot be `bg-text` |
+| `--color-brand-fill`, `--color-brand-fill-alt` | primary/secondary button fills |
+
+`--color-brand-fill` exists because `primary-600` is used as a fill in some places
+and as text in others (31 uses). Those need opposite lightness in dark mode, so
+the fill is split out and the ramp step is left as the text voice.
+
+**In dark mode the ramps invert.** Steps 50–300 are quiet dark surfaces, 400+ is
+the bright voice for brand text, and the one deep button fill is
+`--color-brand-fill`. That is why `primary-600` is lighter than `primary-500` in
+dark while the reverse holds in light. Surfaces are a cool near-black rather than
+a saturated navy, so the coral and sky accents stay the loudest things on the page.
+
+Run `npm run audit:contrast` after touching any colour token or fill. It resolves
+every text-on-fill pair in the markup against both palettes and fails if a dark
+one drops below 4.5:1. Light is reported but does not gate the exit code: it is
+the approved, shipped palette and still has pre-existing shortfalls.
+
 ### Cart
 
 The basket is client-side only and lives in `localStorage`. Stored stock figures
@@ -160,6 +191,7 @@ repos must be running first.
 ```bash
 npm run lint            # ESLint over src and e2e
 npm run i18n:verify     # every t()/plural() call site resolves in both locales
+npm run audit:contrast  # every text-on-fill pair clears 4.5:1 in dark mode
 npm run test:e2e        # the whole suite
 npm run test:e2e:report # open the last HTML report
 ```
@@ -169,12 +201,18 @@ Suites live in `e2e/`: `storefront`, `cart`, `reviews`, `admin`, and
 stay deterministic; `language.spec.js` clears `localStorage` to control the
 starting state.
 
-The run writes to the seeded database, so raise the API's limits first —
-otherwise catalogue and review reads start returning 429:
+The run writes to the seeded database, so raise the API's limits first — otherwise
+catalogue and review reads start returning 429 partway through and the failures
+look random:
 
 ```bash
-RATE_LIMIT_WINDOW_MS=3600000 REVIEW_SUBMIT_WINDOW_MS=600000 npm run test:e2e
+# In the terminal running the API, not the one running Playwright.
+RATE_LIMIT_WINDOW_MS=3600000 RATE_LIMIT_MAX=100000 REVIEW_SUBMIT_WINDOW_MS=600000 npm start
 ```
+
+The default ceiling is 100 requests per 15 minutes, which a 41-test browser run
+exceeds on its own. Setting these on the test runner has no effect: the API
+process owns the counters, and it reads them per request.
 
 Everything each run creates is tagged with a run id and removed afterwards,
 including the copy the edit test renames a product to. If a run dies hard

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { X, Check, ShieldCheck, Star, Truck, Loader2, MessageSquarePlus } from "lucide-react";
 import { reviewsApi } from "../../../lib/api";
@@ -167,7 +167,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
               type="button"
               disabled={isSoldOut}
               onClick={() => onAddToCart(product)}
-              className="w-full rounded-xl bg-primary-600 px-4 py-3 font-bold text-white transition hover:scale-105 hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
+              className="w-full rounded-xl bg-brand-fill px-4 py-3 font-bold text-ink-on-brand transition hover:scale-105 hover:brightness-110 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
             >
               {isSoldOut ? t("products.soldOut") : t("modal.addToCart")}
             </button>
@@ -289,7 +289,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
               <button
                 type="submit"
                 disabled={submitReview.isPending}
-                className="w-full rounded-xl bg-secondary-900 px-4 py-2.5 font-bold text-white transition hover:bg-secondary-1000 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl bg-brand-fill-alt px-4 py-2.5 font-bold text-ink-on-brand transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitReview.isPending ? t("modal.publishing") : t("modal.publishReview")}
               </button>

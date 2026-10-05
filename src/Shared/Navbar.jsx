@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Search,
@@ -63,7 +63,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
       ref={searchRef}
       className="sticky top-0 z-50 border-b border-secondary-100 bg-surface/95 shadow-sm backdrop-blur"
     >
-      <div className="bg-secondary-900 px-4 py-2 text-center text-xs font-semibold tracking-wide text-surface">
+      <div className="bg-brand-fill-alt px-4 py-2 text-center text-xs font-semibold tracking-wide text-ink-on-brand">
         {announcement}
       </div>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -72,7 +72,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
             to="/"
             className="flex shrink-0 items-center gap-2 text-lg font-black tracking-tight text-text sm:text-2xl"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-sm sm:h-10 sm:w-10">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-brand-fill text-ink-on-brand shadow-sm sm:h-10 sm:w-10">
               <Sparkles className="h-5 w-5" />
             </span>
             {brand.primary}
@@ -117,7 +117,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
             >
               <ShoppingBasket className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-800 text-xs font-bold text-text">
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-800 text-xs font-bold text-ink-bright">
                   {cartCount}
                 </span>
               )}

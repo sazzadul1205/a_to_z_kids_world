@@ -17,7 +17,7 @@ export const AdminError = ({ message, onRetry }) => (
       <button
         type="button"
         onClick={onRetry}
-        className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-700"
+        className="rounded-xl bg-brand-fill px-4 py-2 text-sm font-bold text-ink-on-brand transition hover:brightness-110"
       >
         Try again
       </button>
@@ -73,7 +73,7 @@ export const labelClass =
   "mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted";
 
 export const primaryButtonClass =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-brand-fill px-4 py-2.5 text-sm font-bold text-ink-on-brand transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const ghostButtonClass =
   "inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-bold text-text transition hover:border-primary-300 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50";

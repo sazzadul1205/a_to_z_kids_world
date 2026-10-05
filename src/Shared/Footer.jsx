@@ -75,7 +75,7 @@ const Footer = () => {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-footer-border p-2 transition-colors duration-200 hover:bg-primary-600 hover:text-on-footer"
+                    className="rounded-full bg-footer-border p-2 transition-colors duration-200 hover:bg-brand-fill hover:text-on-footer"
                     aria-label={t("footer.visitUsOn", { name: social.name })}
                   >
                     <Icon className="h-4 w-4 text-footer-muted transition-colors hover:text-on-footer" />

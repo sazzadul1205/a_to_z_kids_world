@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, Filter, RefreshCw, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useLanguage } from "../../context/language/useLanguage";
@@ -107,7 +107,7 @@ const Shop = () => {
             <button
               type="button"
               onClick={reload}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-700"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-fill px-4 py-2 text-sm font-bold text-ink-on-brand transition hover:brightness-110"
             >
               <RefreshCw className="h-4 w-4" /> {t("pages.shop.tryAgain")}
             </button>
@@ -160,7 +160,7 @@ const Shop = () => {
                     key={item}
                     type="button"
                     onClick={() => selectCategory(item)}
-                    className={`block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${category === item ? "bg-primary-600 text-white" : "text-text hover:bg-primary-50 hover:text-primary-700"
+                    className={`block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${category === item ? "bg-brand-fill text-ink-on-brand" : "text-text hover:bg-primary-50 hover:text-primary-700"
                       }`}
                   >
                     {item}

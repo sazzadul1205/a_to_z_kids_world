@@ -78,13 +78,13 @@ const CategoriesSection = ({ categories = [], selectedCategory, onSelectCategory
                   onSelectCategory(chip.name);
                 }}
                 className={`group flex shrink-0 items-center gap-3 rounded-2xl border-2 px-5 py-3 font-bold transition-all hover:scale-105 hover:shadow-lg disabled:cursor-wait ${isSelected
-                    ? "border-primary-600 bg-primary-600 text-surface shadow-primary-200"
+                    ? "border-brand-fill bg-brand-fill text-ink-on-brand shadow-black/30"
                     : "border-border bg-surface text-text hover:border-primary-300 hover:bg-primary-50"
                   }`}
               >
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors ${isSelected
-                      ? "bg-white/20 text-surface"
+                      ? "bg-white/20 text-ink-on-brand"
                       : toneForIndex(index)
                     }`}
                 >

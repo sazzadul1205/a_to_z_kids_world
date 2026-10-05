@@ -99,7 +99,7 @@ const ReviewsAdmin = () => {
                           type="button"
                           disabled={busy}
                           onClick={(e) => handleSave(e, review)}
-                          className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-700"
+                          className="rounded-lg bg-brand-fill px-3 py-1.5 text-xs font-bold text-ink-on-brand hover:brightness-110"
                         >
                           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                         </button>

@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { ShoppingBasket, Sparkles } from "lucide-react";
 import { useLanguage } from "../../../context/language/useLanguage";
 import { toneForIndex } from "../../../lib/presentation";
@@ -42,7 +42,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick, status = 
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-secondary-900">
+            <p className="text-sm font-bold uppercase tracking-widest text-secondary-1000">
               {copy.eyebrow}
             </p>
             <h2 className="mt-2 text-3xl font-black text-text">
@@ -96,7 +96,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick, status = 
                       type="button"
                       disabled={isSoldOut}
                       onClick={() => onProductClick(product)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-surface transition hover:scale-105 hover:bg-primary-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
+                      className="inline-flex items-center gap-2 rounded-xl bg-brand-fill px-4 py-2.5 text-sm font-bold text-ink-on-brand transition hover:scale-105 hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
                     >
                       <ShoppingBasket className="h-4 w-4" />
                       {isSoldOut ? t("products.soldOut") : t("products.buyNow")}

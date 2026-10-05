@@ -16,7 +16,7 @@ const NotFound = () => {
       <p className="mt-2 max-w-md text-text-muted">{nf.message}</p>
       <Link
         to="/"
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-bold text-surface shadow transition hover:bg-primary-700"
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-fill px-6 py-3 font-bold text-ink-on-brand shadow transition hover:brightness-110"
       >
         <HomeIcon className="h-5 w-5" /> {nf.ctaLabel}
       </Link>

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { ArrowRight, CheckCircle2, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { Link } from "react-router";
 import { createWhatsAppUrl, whatsappUrl } from "../lib/whatsapp";
@@ -97,9 +97,9 @@ export const Contact = () => {
   return (
     <PageShell eyebrow={contact.eyebrow} title={contact.title} intro={contact.intro}>
       <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-3xl bg-secondary-900 p-6 text-white sm:p-8">
+        <div className="rounded-3xl bg-brand-fill-alt p-6 text-ink-on-brand sm:p-8">
           <h2 className="text-2xl font-black">{contact.panelTitle}</h2>
-          <p className="mt-3 text-sm leading-relaxed text-secondary-100">{contact.panelNote}</p>
+          <p className="mt-3 text-sm leading-relaxed text-white/80">{contact.panelNote}</p>
           <div className="mt-8 space-y-5 text-sm">
             {channels.map((channel) => {
               const Icon = contactIcons[channel.icon];
@@ -115,7 +115,7 @@ export const Contact = () => {
             href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-accent-600 px-5 py-3 font-bold text-text hover:bg-accent-700"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-accent-600 px-5 py-3 font-bold text-ink-bright hover:bg-accent-700"
           >
             {contact.ctaLabel} <ArrowRight className="h-4 w-4" />
           </a>
@@ -155,7 +155,7 @@ export const Contact = () => {
             {error && <p className="text-sm font-semibold text-primary-700">{error}</p>}
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-3 font-bold text-white hover:bg-primary-700"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-fill px-5 py-3 font-bold text-ink-on-brand hover:brightness-110"
             >
               {contact.form.submitLabel} <Send className="h-4 w-4" />
             </button>

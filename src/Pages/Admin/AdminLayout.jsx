@@ -33,7 +33,7 @@ const AdminLayout = () => {
     <div className="flex min-h-screen flex-col bg-surface-soft text-text lg:flex-row">
       <aside className="flex flex-col border-b border-border bg-surface px-4 py-5 lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-600 text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-fill text-ink-on-brand">
             <Sparkles className="h-5 w-5" />
           </span>
           <div>
@@ -53,7 +53,7 @@ const AdminLayout = () => {
               className={({ isActive }) =>
                 `flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
                   isActive
-                    ? "bg-primary-600 text-white"
+                    ? "bg-brand-fill text-ink-on-brand"
                     : "text-text hover:bg-primary-50 hover:text-primary-700"
                 }`
               }

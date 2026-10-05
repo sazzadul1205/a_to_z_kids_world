@@ -65,6 +65,21 @@
   --color-footer-border: #003052;
   --color-on-footer: #ffffff;
 
+  /* ========== Theme-invariant roles ========== */
+  /* These are deliberately identical in both themes. Each is used on a fill
+     whose lightness does NOT change with the theme, so a label that flipped
+     along with it would be unreadable in one of the two. */
+  --color-ink-on-brand: #ffffff; /* label on a saturated brand fill */
+  --color-ink-bright: #1c1416; /* label on a bright chip (sunny yellow) */
+  --color-scrim: #05090f; /* modal backdrop; must darken in both themes */
+
+  /* Brand fills are split out of the ramps below because the same ramp step is
+     used as a fill in some places and as text in others, and in dark mode those
+     need opposite lightness. The values here are the light-theme originals, so
+     light mode is unchanged. */
+  --color-brand-fill: #ff9490; /* was primary-600 */
+  --color-brand-fill-alt: #2686cd; /* was secondary-900 */
+
   /* ========== Radius tokens ========== */
   --radius-card: 1rem;
   --radius-button: 0.75rem;
@@ -83,18 +98,81 @@
 
 :root.dark {
   color-scheme: dark;
-  --color-secondary-50: #183b5b;
-  --color-secondary-100: #21496c;
-  --color-secondary-200: #356589;
-  --color-surface: #102a43;
-  --color-surface-soft: #163a5c;
-  --color-text: #f0f8ff;
-  --color-text-muted: #b6dcff;
-  --color-border: #2d628d;
-  --color-footer: #071d31;
-  --color-footer-muted: #b6dcff;
-  --color-footer-border: #163a5c;
-  --color-on-footer: #f0f8ff;
+
+  /* Surfaces are a cool near-black rather than a saturated navy: the coral and
+     sky accents have to stay the loudest things on the page, and a mid-tone
+     blue background competes with both of them. */
+  --color-surface: #0f151d;
+  --color-surface-soft: #171f2a;
+  --color-text: #eef2f7;
+  --color-text-muted: #a7b4c4;
+  --color-border: #2b3644;
+  --color-footer: #0a1017;
+  --color-footer-muted: #9fb6cc;
+  --color-footer-border: #1c242f;
+  --color-on-footer: #eef2f7;
+
+  /* ========== Primary — two zones ========== */
+  /* 50-500 are quiet surfaces and fills deep enough to carry a white label.
+     600 and up is the bright voice used for brand TEXT on the dark surface,
+     which is why 600 is lighter than 500. Verified by scripts/audit-contrast.mjs. */
+  --color-primary-50: #2a1519;
+  --color-primary-100: #3a1d22;
+  --color-primary-200: #4d252b;
+  --color-primary-300: #5c2b31;
+  --color-primary-400: #ffb3b0;
+  --color-primary-500: #ff9490;
+  --color-primary-600: #ff8f8b;
+  --color-primary-700: #ff7a76;
+  --color-primary-800: #ff6b6b;
+  --color-primary-900: #f2555a;
+  --color-primary-950: #ff6b6b;
+  --color-primary-1000: #ff7d7d;
+  --color-primary-1100: #ff9090;
+  --color-primary-1200: #ffa3a3;
+  --color-primary-1300: #ffb6b6;
+  --color-primary-1400: #ffc9c9;
+  --color-brand-fill: #c0413f;
+
+  /* ========== Accent ========== */
+  /* 50-500 are dark surfaces; 600 and up stay bright, because the sunny yellow
+     chips keep their dark label (--color-ink-bright) in both themes. */
+  --color-accent-50: #2e2410;
+  --color-accent-100: #3d3014;
+  --color-accent-200: #52411a;
+  --color-accent-300: #6b5521;
+  --color-accent-400: #8a6d28;
+  --color-accent-500: #a88630;
+  --color-accent-600: #ffe173;
+  --color-accent-700: #ffd75a;
+  --color-accent-800: #ffd93d;
+  --color-accent-900: #e4be03;
+  --color-accent-950: #d4b003;
+  --color-accent-1000: #c6a500;
+  --color-accent-1100: #b89400;
+  --color-accent-1200: #a98c00;
+  --color-accent-1300: #8d7501;
+  --color-accent-1400: #715d01;
+
+  /* ========== Secondary ========== */
+  /* 900 is a fill deep enough for a white label; 1000 is the bright price and
+     body-emphasis voice. */
+  --color-secondary-50: #14212e;
+  --color-secondary-100: #17293a;
+  --color-secondary-200: #22364a;
+  --color-secondary-300: #2b4459;
+  --color-secondary-400: #8cc9ff;
+  --color-secondary-500: #6bb6f5;
+  --color-secondary-600: #58a8ec;
+  --color-secondary-700: #4a97d8;
+  --color-secondary-800: #3d84bd;
+  --color-secondary-900: #5fb0f0;
+  --color-secondary-950: #16608f;
+  --color-secondary-1000: #7cc4f7;
+  --color-secondary-1100: #6ab5e8;
+  --color-secondary-1200: #58a6d9;
+  --color-secondary-1300: #4697ca;
+  --color-brand-fill-alt: #14608f;
 }
 
 body {

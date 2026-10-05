@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import HeroSection from "./sections/HeroSection";
@@ -67,7 +67,7 @@ const Home = () => {
             <button
               type="button"
               onClick={reload}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-700"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-fill px-4 py-2 text-sm font-bold text-ink-on-brand transition hover:brightness-110"
             >
               <RefreshCw className="h-4 w-4" /> {t("pages.shop.tryAgain")}
             </button>

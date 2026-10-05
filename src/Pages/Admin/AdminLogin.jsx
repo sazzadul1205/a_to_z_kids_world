@@ -40,7 +40,7 @@ const AdminLogin = () => {
       <div className="w-full max-w-md">
         <div className="rounded-3xl border border-border bg-surface p-7 shadow-xl sm:p-9">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-600 text-white">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-fill text-ink-on-brand">
               <LockKeyhole className="h-5 w-5" />
             </span>
             <div>
@@ -91,7 +91,7 @@ const AdminLogin = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 py-3 font-bold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-fill px-5 py-3 font-bold text-ink-on-brand transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

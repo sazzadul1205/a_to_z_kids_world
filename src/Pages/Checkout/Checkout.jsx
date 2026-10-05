@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, CheckCircle2, MessageCircle, ShieldCheck, Truck, Minus, Plus } from "lucide-react";
 import { Link } from "react-router";
 import { useCart } from "../../Shared/useCart";
@@ -59,7 +59,7 @@ const Checkout = () => {
         </p>
         <h1 className="mt-2 text-4xl font-black text-text">{copy.successTitle}</h1>
         <p className="mt-4 max-w-md leading-relaxed text-text-muted">{copy.successMessage}</p>
-        <Link to="/" className="mt-8 rounded-xl bg-primary-600 px-6 py-3 font-bold text-white hover:bg-primary-700">
+        <Link to="/" className="mt-8 rounded-xl bg-brand-fill px-6 py-3 font-bold text-ink-on-brand hover:brightness-110">
           {copy.successCta}
         </Link>
       </div>

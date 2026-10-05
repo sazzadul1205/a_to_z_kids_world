@@ -1,4 +1,4 @@
-﻿import { Sparkles, MessageCircle, ArrowRight, Smile } from "lucide-react";
+import { Sparkles, MessageCircle, ArrowRight, Smile } from "lucide-react";
 import { whatsappUrl } from "../../../lib/whatsapp";
 import { useLanguage } from "../../../context/language/useLanguage";
 
@@ -28,13 +28,13 @@ const HeroSection = () => {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-secondary-900 px-6 py-3 font-bold text-surface shadow-md transition hover:-translate-y-1 hover:bg-secondary-1000"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-fill-alt px-6 py-3 font-bold text-ink-on-brand shadow-md transition hover:-translate-y-1 hover:brightness-110"
               >
                 <MessageCircle className="h-5 w-5" /> {t("hero.chatWithUs")}
               </a>
               <a
                 href="#products"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-bold text-surface shadow-md transition hover:-translate-y-1 hover:bg-primary-700"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-fill px-6 py-3 font-bold text-ink-on-brand shadow-md transition hover:-translate-y-1 hover:brightness-110"
               >
                 {t("hero.shopNow")} <ArrowRight className="h-5 w-5" />
               </a>
@@ -43,7 +43,7 @@ const HeroSection = () => {
 
           <div className="relative flex justify-center md:justify-end">
             <div className="relative w-full max-w-md rounded-4xl bg-secondary-200 p-4 shadow-xl">
-              <div className="absolute -right-2 -top-4 flex items-center gap-2 rounded-2xl bg-accent-600 px-4 py-2 text-sm font-black text-text shadow-md">
+              <div className="absolute -right-2 -top-4 flex items-center gap-2 rounded-2xl bg-accent-600 px-4 py-2 text-sm font-black text-ink-bright shadow-md">
                 <Smile className="h-5 w-5" /> {hero.imageBadge}
               </div>
               <img

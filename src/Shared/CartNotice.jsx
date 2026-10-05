@@ -1,4 +1,4 @@
-﻿import { AlertTriangle, Check, X } from "lucide-react";
+import { AlertTriangle, Check, X } from "lucide-react";
 import { useLanguage } from "../context/language/useLanguage";
 
 export default function CartNotice({ notice, onDismiss }) {
@@ -16,8 +16,8 @@ export default function CartNotice({ notice, onDismiss }) {
       <div
         className={`flex max-w-md items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold shadow-xl ${
           isWarn
-            ? "bg-accent-900 text-surface"
-            : "bg-secondary-900 text-surface"
+            ? "bg-accent-900 text-ink-bright"
+            : "bg-brand-fill-alt text-ink-on-brand"
         }`}
       >
         {isWarn ? (

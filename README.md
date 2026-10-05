@@ -94,6 +94,33 @@ already holding every unit in stock — surfaces as a message instead of closing
 the product dialog silently, and "Buy now" stays put rather than navigating to
 checkout with nothing added.
 
+### Language
+
+English and Bangla are switchable from the navbar, next to the theme toggle.
+
+- Copy lives in `src/i18n/en.js` and `src/i18n/bn.js`; `LanguageProvider` picks
+  one and exposes `t`, `plural`, `formatPrice`, and `categoryLabel`.
+- The choice is stored in `a-to-z-kids-language` and **only** when the visitor
+  makes it explicitly. Detection from `navigator.languages` runs on every load
+  until then, so a stored value always means "the visitor chose this".
+- `<html lang>` is kept in sync, which is what makes Bengali glyphs and screen
+  readers pick the right font and pronunciation.
+- Prices follow the locale, so Bangla renders Bengali digits (`৳১,৫৯৯.০০`).
+- `plural()` appends `One`/`Other` to a path. Bangla supplies both forms as the
+  same string, since it does not inflect for number.
+- Unknown strings fall back to English rather than rendering a raw key.
+
+Database content is never translated. Product names, descriptions, and the
+category names the API returns stay as-is; only the known category labels are
+mapped for display.
+
+**Catalogue URLs keep their identifiers.** `ALL_TOYS` in `src/lib/catalog.js` is
+a comparison sentinel, so a category filter still serialises to the API's
+`?category=Board games` in Bangla. Never compare against a translated label.
+
+`npm run i18n:verify` checks every `t()`/`plural()` call site against both
+dictionaries. Run it after moving copy between dictionaries.
+
 ### Checkout
 
 Checkout collects delivery details and hands the basket to WhatsApp. It never
@@ -126,12 +153,29 @@ unexpected origin.
 
 ## Tests
 
-No test runner is configured. Verify with:
+Playwright drives a real browser against a running API and dev server, which are
+started separately — see the backend README for the full procedure. Both
+repos must be running first.
 
 ```bash
-npm run lint
-npm run build
+npm run lint            # ESLint over src and e2e
+npm run i18n:verify     # every t()/plural() call site resolves in both locales
+npm run test:e2e        # the whole suite
+npm run test:e2e:report # open the last HTML report
 ```
 
-Behaviour was checked against a running API through the Vite proxy: catalogue
-reads, search, cart clamping, admin sign-in, and CRUD on each staff screen.
+Suites live in `e2e/`: `storefront`, `cart`, `reviews`, `admin`, and
+`language`. The browser locale is pinned to `en-US` so the English assertions
+stay deterministic; `language.spec.js` clears `localStorage` to control the
+starting state.
+
+The run writes to the seeded database, so raise the API's limits first —
+otherwise catalogue and review reads start returning 429:
+
+```bash
+RATE_LIMIT_WINDOW_MS=3600000 REVIEW_SUBMIT_WINDOW_MS=600000 npm run test:e2e
+```
+
+Everything each run creates is tagged with a run id and removed afterwards,
+including the copy the edit test renames a product to. If a run dies hard
+midway, stray `E2E …-<runid>` rows can be deleted from the staff area.

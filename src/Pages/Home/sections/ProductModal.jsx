@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { X, Check, ShieldCheck, Star, Truck, Loader2, MessageSquarePlus } from "lucide-react";
-import { formatBDT } from "../../../lib/currency";
 import { reviewsApi } from "../../../lib/api";
 import { useProductReviews } from "../../../hooks/useProductReviews";
 import { starsForRating } from "../../../lib/presentation";
+import { useLanguage } from "../../../context/language/useLanguage";
 
 const EMPTY_DRAFT = { name: "", rating: 5, comment: "" };
 
@@ -13,6 +13,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
   const [submitError, setSubmitError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const { reviews, summary, status, reload } = useProductReviews(product?._id);
+  const { t, plural, categoryLabel, formatPrice } = useLanguage();
 
   // A new review changes both the list and the aggregate, so the mutation
   // refreshes them instead of the component refetching by hand.
@@ -77,7 +78,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
       >
         <button
           type="button"
-          aria-label="Close product details"
+          aria-label={t("modal.close")}
           onClick={onClose}
           className="absolute right-3 top-3 z-10 rounded-full bg-surface/80 p-2 text-text shadow-md backdrop-blur-sm transition hover:bg-primary-100 hover:text-primary-700"
         >
@@ -92,7 +93,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
 
         <div className="min-h-0 overflow-y-auto p-4 sm:order-1 sm:p-6 md:overflow-y-visible">
           <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
-            {product.category}
+            {categoryLabel(product.category)}
           </p>
           <h2
             id="product-modal-title"
@@ -110,7 +111,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                 />
               ))}
             </span>
-            {count > 0 ? average.toFixed(1) : "No ratings yet"}
+            {count > 0 ? average.toFixed(1) : t("modal.noRatingsYet")}
             <span className="font-normal text-text-muted">({count})</span>
           </div>
 
@@ -120,37 +121,37 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
             {product.age && (
               <div className="flex items-center gap-3 font-semibold text-text">
                 <Check className="h-5 w-5 text-primary-600" />
-                Suitable for {product.age.toLowerCase()}
+                {t("modal.suitableFor", { age: product.age.toLowerCase() })}
               </div>
             )}
             {product.includes && (
               <div className="flex items-center gap-3">
                 <Star className="h-5 w-5 text-primary-600" />
-                Includes {product.includes}
+                {t("modal.includes", { includes: product.includes })}
               </div>
             )}
             <div className="flex items-center gap-3">
               <Truck className="h-5 w-5 text-secondary-800" />
-              Free delivery on this discovery
+              {t("modal.freeDelivery")}
             </div>
           </div>
 
           <div className="mt-4 rounded-2xl border border-border bg-surface-soft p-3">
             <p className="text-xs font-bold uppercase tracking-widest text-text-muted">
-              Our price
+              {t("modal.ourPrice")}
             </p>
             <div className="mt-1 flex items-end justify-between gap-4">
               <span className="text-3xl font-black leading-none text-primary-700">
-                {formatBDT(product.price)}
+                {formatPrice(product.price)}
               </span>
               <span className="text-right text-xs font-semibold text-text-muted">
                 {isSoldOut ? (
-                  <span className="text-primary-700">Out of stock</span>
+                  <span className="text-primary-700">{t("modal.outOfStock")}</span>
                 ) : (
                   <>
-                    {product.stock} in stock
+                    {t("modal.inStock", { stock: product.stock })}
                     <br />
-                    Easy returns within 30 days
+                    {t("modal.easyReturns")}
                   </>
                 )}
               </span>
@@ -158,8 +159,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <ShieldCheck className="h-4 w-4 text-primary-600" /> Safe checkout
-            and quality-checked toys
+            <ShieldCheck className="h-4 w-4 text-primary-600" /> {t("modal.safeCheckout")}
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2 sm:gap-3">
@@ -169,7 +169,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
               onClick={() => onAddToCart(product)}
               className="w-full rounded-xl bg-primary-600 px-4 py-3 font-bold text-white transition hover:scale-105 hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
             >
-              {isSoldOut ? "Sold out" : "Add to cart"}
+              {isSoldOut ? t("products.soldOut") : t("modal.addToCart")}
             </button>
             <button
               type="button"
@@ -184,18 +184,18 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
           <section className="mt-6 border-t border-border pt-5">
             <h3 className="flex items-center gap-2 text-lg font-black text-text">
               <MessageSquarePlus className="h-5 w-5 text-primary-600" />
-              What families say
+              {t("modal.reviewsHeading")}
             </h3>
 
             {status === "loading" && (
               <p className="mt-4 flex items-center gap-2 text-sm text-text-muted">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading reviews...
+                <Loader2 className="h-4 w-4 animate-spin" /> {t("modal.loadingReviews")}
               </p>
             )}
 
             {status === "ready" && reviews.length === 0 && (
               <p className="mt-4 text-sm text-text-muted">
-                No reviews yet. Be the first to share what you think.
+                {t("modal.noReviews")}
               </p>
             )}
 
@@ -228,12 +228,12 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
               onSubmit={handleSubmitReview}
               className="mt-5 space-y-3 rounded-2xl border border-border p-4"
             >
-              <p className="text-sm font-bold text-text">Leave a review</p>
+              <p className="text-sm font-bold text-text">{t("modal.leaveReview")}</p>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted">
-                    Your name
+                    {t("modal.yourName")}
                   </span>
                   <input
                     required
@@ -241,13 +241,13 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                     maxLength={100}
                     value={draft.name}
                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    placeholder="Alex Explorer"
+                    placeholder={t("modal.namePlaceholder")}
                     className="w-full rounded-xl border border-border bg-surface-soft px-3 py-2 text-sm text-text outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                   />
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted">
-                    Rating
+                    {t("modal.rating")}
                   </span>
                   <select
                     value={draft.rating}
@@ -256,7 +256,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                   >
                     {[5, 4, 3, 2, 1].map((value) => (
                       <option key={value} value={value}>
-                        {value} star{value > 1 ? "s" : ""}
+                        {plural("modal.ratingStars", value)}
                       </option>
                     ))}
                   </select>
@@ -265,14 +265,14 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
 
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-muted">
-                  Comment
+                  {t("modal.comment")}
                 </span>
                 <textarea
                   rows={3}
                   maxLength={1000}
                   value={draft.comment}
                   onChange={(e) => setDraft({ ...draft, comment: e.target.value })}
-                  placeholder="What did your little one think?"
+                  placeholder={t("modal.commentPlaceholder")}
                   className="w-full rounded-xl border border-border bg-surface-soft px-3 py-2 text-sm text-text outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                 />
               </label>
@@ -282,7 +282,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
               )}
               {submitted && (
                 <p className="text-sm font-semibold text-secondary-1000">
-                  Thanks! Your review has been published.
+                  {t("modal.published")}
                 </p>
               )}
 
@@ -291,7 +291,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
                 disabled={submitReview.isPending}
                 className="w-full rounded-xl bg-secondary-900 px-4 py-2.5 font-bold text-white transition hover:bg-secondary-1000 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitReview.isPending ? "Publishing..." : "Publish review"}
+                {submitReview.isPending ? t("modal.publishing") : t("modal.publishReview")}
               </button>
             </form>
           </section>

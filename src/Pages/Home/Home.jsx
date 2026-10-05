@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import HeroSection from "./sections/HeroSection";
@@ -9,6 +9,7 @@ import { useCart } from "../../Shared/useCart";
 import { useCartNotice } from "../../Shared/useCartNotice";
 import CartNotice from "../../Shared/CartNotice";
 import { useCatalog } from "../../context/catalog/useCatalog";
+import { useLanguage } from "../../context/language/useLanguage";
 import { ALL_TOYS } from "../../lib/catalog";
 
 const Home = () => {
@@ -18,6 +19,7 @@ const Home = () => {
   const { addToCart } = useCart();
   const { notice, report, dismiss } = useCartNotice();
   const { categories, products, status, error, reload } = useCatalog();
+  const { t } = useLanguage();
   const shouldScroll = useRef(false);
 
   const selectedCategory = searchParams.get("category") || ALL_TOYS;
@@ -60,14 +62,14 @@ const Home = () => {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-300 bg-primary-50 px-5 py-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-primary-900">
               <AlertTriangle className="h-5 w-5 shrink-0" />
-              {error?.message || "We could not load the toy catalogue."}
+              {error?.message || t("pages.shop.catalogueError")}
             </p>
             <button
               type="button"
               onClick={reload}
               className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-700"
             >
-              <RefreshCw className="h-4 w-4" /> Try again
+              <RefreshCw className="h-4 w-4" /> {t("pages.shop.tryAgain")}
             </button>
           </div>
         </div>

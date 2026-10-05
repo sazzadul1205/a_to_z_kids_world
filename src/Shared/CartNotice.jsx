@@ -1,6 +1,8 @@
-import { AlertTriangle, Check, X } from "lucide-react";
+﻿import { AlertTriangle, Check, X } from "lucide-react";
+import { useLanguage } from "../context/language/useLanguage";
 
 export default function CartNotice({ notice, onDismiss }) {
+  const { t } = useLanguage();
   if (!notice) return null;
 
   const isWarn = notice.tone === "warn";
@@ -27,7 +29,7 @@ export default function CartNotice({ notice, onDismiss }) {
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Dismiss message"
+          aria-label={t("notice.dismiss")}
           className="rounded-full p-1 transition hover:bg-white/20"
         >
           <X className="h-4 w-4" />

@@ -1,9 +1,10 @@
 import { Link } from "react-router";
 import { Home as HomeIcon } from "lucide-react";
-import { pagesData } from "../../data/pages";
+import { useLanguage } from "../../context/language/useLanguage";
 
 const NotFound = () => {
-  const nf = pagesData.notFound;
+  const { pages } = useLanguage();
+  const nf = pages.notFound;
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
       <div className="relative mb-6 text-8xl">

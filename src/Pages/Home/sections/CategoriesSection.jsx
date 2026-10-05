@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { ALL_TOYS_ICON, iconForCategoryName, toneForIndex } from "../../../lib/presentation";
-import { pagesData } from "../../../data/pages";
+import { useLanguage } from "../../../context/language/useLanguage";
+import { ALL_TOYS } from "../../../lib/catalog";
 
 const CategoriesSection = ({ categories = [], selectedCategory, onSelectCategory, status = "ready" }) => {
-  const copy = pagesData.categories;
+  const { pages, t, categoryLabel } = useLanguage();
+  const copy = pages.categories;
   const scrollerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, scrollLeft: 0 });
@@ -26,9 +28,15 @@ const CategoriesSection = ({ categories = [], selectedCategory, onSelectCategory
   const handlePointerUp = () => setIsDragging(false);
 
   // "All toys" is a client-side pseudo-category; the API has no equivalent.
+  // `name` stays the English identifier because it drives the URL, the selected
+  // comparison and the icon lookup, while `label` is what the visitor reads.
   const chips = [
-    { key: "all-toys", name: "All toys" },
-    ...categories.map((category) => ({ key: String(category._id), name: category.name })),
+    { key: "all-toys", name: ALL_TOYS, label: t("categories.allToys") },
+    ...categories.map((category) => ({
+      key: String(category._id),
+      name: category.name,
+      label: categoryLabel(category.name),
+    })),
   ];
 
   return (
@@ -82,7 +90,7 @@ const CategoriesSection = ({ categories = [], selectedCategory, onSelectCategory
                 >
                   <Icon className="h-4 w-4" />
                 </span>
-                <span className="whitespace-nowrap text-sm sm:text-base">{chip.name}</span>
+                <span className="whitespace-nowrap text-sm sm:text-base">{chip.label}</span>
               </button>
             );
           })}

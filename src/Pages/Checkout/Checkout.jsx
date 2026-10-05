@@ -1,30 +1,50 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ArrowLeft, CheckCircle2, MessageCircle, ShieldCheck, Truck, Minus, Plus } from "lucide-react";
 import { Link } from "react-router";
 import { useCart } from "../../Shared/useCart";
-import { formatBDT, toBDTAmount } from "../../lib/currency";
+import { toBDTAmount } from "../../lib/currency";
 import { createWhatsAppUrl } from "../../lib/whatsapp";
-import { pagesData } from "../../data/pages";
-import { storeData } from "../../data/store";
+import { useLanguage } from "../../context/language/useLanguage";
 
 const Checkout = () => {
   const { items, subtotal, updateQuantity, clearCart } = useCart();
   const [isComplete, setIsComplete] = useState(false);
   const [address, setAddress] = useState({ name: "", line: "", city: "", postal: "" });
+  const { pages, store, t, formatPrice } = useLanguage();
 
-  const copy = pagesData.checkout;
-  const shipping = items.length > 0 ? storeData.checkout.shippingFee : 0;
+  const copy = pages.checkout;
+  const shipping = items.length > 0 ? store.checkout.shippingFee : 0;
   const total = subtotal + shipping;
 
   const handleWhatsAppOrder = (event) => {
     event.preventDefault();
+    // This message is what the team actually reads, so it follows the language
+    // the visitor is browsing in rather than being fixed to English.
     const orderLines = items
-      .map(
-        (item) =>
-          `• ${item.name} x${item.quantity} - ${formatBDT(toBDTAmount(item.price) * item.quantity)} (ref ${item._id})`,
+      .map((item) =>
+        t("messages.order.item", {
+          name: item.name,
+          n: item.quantity,
+          total: formatPrice(toBDTAmount(item.price) * item.quantity),
+          id: item._id,
+        }),
       )
       .join("\n");
-    const message = `Hello! I would like to place an order.\n\n${orderLines}\n\nSubtotal: ${formatBDT(subtotal)}\nDelivery: ${formatBDT(shipping)}\nTotal: ${formatBDT(total)}\n\nDeliver to: ${address.name}, ${address.line}, ${address.city}, ${address.postal}`;
+    const message = [
+      t("messages.order.greeting"),
+      "",
+      orderLines,
+      "",
+      t("messages.order.subtotal", { value: formatPrice(subtotal) }),
+      t("messages.order.delivery", { value: formatPrice(shipping) }),
+      t("messages.order.total", { value: formatPrice(total) }),
+      "",
+      t("messages.order.deliverTo", {
+        address: [address.name, address.line, address.city, address.postal]
+          .filter(Boolean)
+          .join(", "),
+      }),
+    ].join("\n");
     window.open(createWhatsAppUrl(message), "_blank", "noopener,noreferrer");
     clearCart();
     setIsComplete(true);
@@ -52,7 +72,7 @@ const Checkout = () => {
           to="/"
           className="inline-flex items-center gap-2 text-sm font-bold text-text-muted hover:text-primary-600"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to shopping
+          <ArrowLeft className="h-4 w-4" /> {t("pages.checkout.backToShopping")}
         </Link>
         <div className="mt-7 grid gap-6 sm:gap-8 lg:grid-cols-[1fr_380px]">
           <form onSubmit={handleWhatsAppOrder} className="space-y-6">
@@ -129,7 +149,7 @@ const Checkout = () => {
                         <div className="flex items-center rounded-lg border border-border">
                           <button
                             type="button"
-                            aria-label={`Decrease ${item.name} quantity`}
+                            aria-label={`${t("cart.decrease")} ${item.name}`}
                             onClick={() => updateQuantity(item._id, item.quantity - 1)}
                             className="p-1 hover:bg-secondary-100"
                           >
@@ -138,7 +158,7 @@ const Checkout = () => {
                           <span className="min-w-7 text-center text-sm font-bold">{item.quantity}</span>
                           <button
                             type="button"
-                            aria-label={`Increase ${item.name} quantity`}
+                            aria-label={`${t("cart.increase")} ${item.name}`}
                             onClick={() => updateQuantity(item._id, item.quantity + 1)}
                             disabled={item.quantity >= item.stock}
                             className="p-1 hover:bg-secondary-100 disabled:cursor-not-allowed disabled:opacity-40"
@@ -149,32 +169,32 @@ const Checkout = () => {
                       </div>
                     </div>
                     <span className="shrink-0 text-right text-sm font-bold text-text sm:text-base">
-                      {formatBDT(toBDTAmount(item.price) * item.quantity)}
+                      {formatPrice(toBDTAmount(item.price) * item.quantity)}
                     </span>
                   </div>
                 ))}
                 <div className="border-t border-border pt-4 text-sm">
                   <div className="flex justify-between text-text-muted">
                     <span>{copy.subtotalLabel}</span>
-                    <span>{formatBDT(subtotal)}</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="mt-2 flex justify-between text-text-muted">
                     <span>{copy.shippingLabel}</span>
-                    <span>{formatBDT(shipping)}</span>
+                    <span>{formatPrice(shipping)}</span>
                   </div>
                   <div className="mt-4 flex justify-between text-xl font-black text-text">
                     <span>{copy.totalLabel}</span>
-                    <span className="text-primary-700">{formatBDT(total)}</span>
+                    <span className="text-primary-700">{formatPrice(total)}</span>
                   </div>
                 </div>
               </div>
             )}
             <div className="mt-6 space-y-3 border-t border-border pt-5 text-sm font-semibold text-text-muted">
               <div className="flex items-center gap-3">
-                <Truck className="h-5 w-5 text-secondary-800" /> Delivery confirmed on WhatsApp
+                <Truck className="h-5 w-5 text-secondary-800" /> {t("pages.checkout.confirmedOnWhatsApp")}
               </div>
               <div className="flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-primary-600" /> No payment details stored
+                <ShieldCheck className="h-5 w-5 text-primary-600" /> {t("pages.checkout.noPaymentStored")}
               </div>
             </div>
           </aside>

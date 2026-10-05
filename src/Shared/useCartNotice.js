@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLanguage } from "../context/language/useLanguage";
 
 // The basket can refuse a toy (sold out, or already holding every unit in
 // stock). That answer used to be silent, so the shopper saw the product dialog
@@ -6,23 +7,27 @@ import { useCallback, useEffect, useState } from "react";
 // short-lived message.
 export function useCartNotice(timeout = 3200) {
   const [notice, setNotice] = useState(null);
+  const { t } = useLanguage();
 
   const dismiss = useCallback(() => setNotice(null), []);
 
-  const report = useCallback((result, product) => {
-    if (result?.added) {
-      setNotice({ tone: "ok", text: `${product.name} added to your basket.` });
-      return true;
-    }
-    setNotice({
-      tone: "warn",
-      text:
-        result?.reason === "stock-limit"
-          ? `That is every ${product.name} we have in stock.`
-          : `${product?.name ?? "That toy"} is out of stock.`,
-    });
-    return false;
-  }, []);
+  const report = useCallback(
+    (result, product) => {
+      if (result?.added) {
+        setNotice({ tone: "ok", text: t("notice.added", { name: product.name }) });
+        return true;
+      }
+      setNotice({
+        tone: "warn",
+        text:
+          result?.reason === "stock-limit"
+            ? t("notice.allInStock", { name: product.name })
+            : t("notice.outOfStock", { name: product?.name ?? t("notice.outOfStockFallback") }),
+      });
+      return false;
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (!notice) return undefined;

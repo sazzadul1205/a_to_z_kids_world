@@ -1,9 +1,8 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ArrowRight, CheckCircle2, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { Link } from "react-router";
 import { createWhatsAppUrl, whatsappUrl } from "../lib/whatsapp";
-import { pagesData } from "../data/pages";
-import { storeData } from "../data/store";
+import { useLanguage } from "../context/language/useLanguage";
 
 const PageShell = ({ eyebrow, title, intro, children }) => (
   <div className="bg-surface-soft px-4 py-12 sm:px-6 lg:px-8">
@@ -23,7 +22,8 @@ const statTones = {
 };
 
 export const About = () => {
-  const about = pagesData.about;
+  const { pages } = useLanguage();
+  const about = pages.about;
   return (
     <PageShell eyebrow={about.eyebrow} title={about.title} intro={about.intro}>
       <div className="grid gap-6 md:grid-cols-3">
@@ -63,26 +63,28 @@ const contactIcons = {
 };
 
 export const Contact = () => {
-  const contact = pagesData.contact;
+  const { pages, store, t } = useLanguage();
+  const contact = pages.contact;
   const [message, setMessage] = useState({ name: "", email: "", body: "" });
   const [error, setError] = useState(null);
 
   const channels = [
-    { icon: "messageCircle", label: "Chat with us on WhatsApp" },
-    { icon: "mail", label: storeData.contact.email },
-    { icon: "phone", label: storeData.contact.phone },
-    { icon: "mapPin", label: storeData.contact.address },
+    { icon: "messageCircle", label: t("pages.contact.whatsappLabel") },
+    { icon: "mail", label: store.contact.email },
+    { icon: "phone", label: store.contact.phone },
+    { icon: "mapPin", label: store.contact.address },
   ];
 
   // There is no message endpoint: the form hands off to WhatsApp so the
   // enquiry genuinely reaches the team.
   const handleSubmit = (event) => {
     event.preventDefault();
+    // The team reads this message, so it follows the browsing language.
     const text = [
-      "Hello A to Z Kids World!",
+      t("messages.contact.greeting"),
       "",
-      `Name: ${message.name.trim()}`,
-      `Email: ${message.email.trim()}`,
+      t("messages.contact.name", { value: message.name.trim() }),
+      t("messages.contact.email", { value: message.email.trim() }),
       "",
       message.body.trim(),
     ].join("\n");
@@ -173,7 +175,8 @@ const PolicySection = ({ title, children }) => (
 );
 
 export const Privacy = () => {
-  const data = pagesData.privacy;
+  const { pages } = useLanguage();
+  const data = pages.privacy;
   return (
     <PageShell eyebrow={data.eyebrow} title={data.title} intro={data.intro}>
       <div className="rounded-3xl border border-border bg-surface px-6 sm:px-8">
@@ -188,7 +191,8 @@ export const Privacy = () => {
 };
 
 export const Terms = () => {
-  const data = pagesData.terms;
+  const { pages } = useLanguage();
+  const data = pages.terms;
   return (
     <PageShell eyebrow={data.eyebrow} title={data.title} intro={data.intro}>
       <div className="rounded-3xl border border-border bg-surface px-6 sm:px-8">
@@ -203,7 +207,8 @@ export const Terms = () => {
 };
 
 export const Sitemap = () => {
-  const data = pagesData.sitemap;
+  const { pages } = useLanguage();
+  const data = pages.sitemap;
   return (
     <PageShell eyebrow={data.eyebrow} title={data.title} intro={data.intro}>
       <div className="grid gap-4 sm:grid-cols-2">

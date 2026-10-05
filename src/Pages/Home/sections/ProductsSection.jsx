@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { ShoppingBasket, Sparkles } from "lucide-react";
-import { formatBDT } from "../../../lib/currency";
-import { pagesData } from "../../../data/pages";
+import { useLanguage } from "../../../context/language/useLanguage";
 import { toneForIndex } from "../../../lib/presentation";
 
 const ProductsSection = ({ products, selectedCategory, onProductClick, status = "ready" }) => {
-  const copy = pagesData.products;
+  const { pages, t, categoryLabel, formatPrice } = useLanguage();
+  const copy = pages.products;
 
   const skeletonItems = useMemo(
     () => Array.from({ length: 6 }, (_, index) => ({ _id: `skeleton-${index}` })),
@@ -46,7 +46,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick, status = 
               {copy.eyebrow}
             </p>
             <h2 className="mt-2 text-3xl font-black text-text">
-              {selectedCategory || copy.fallbackTitle}
+              {selectedCategory ? categoryLabel(selectedCategory) : copy.fallbackTitle}
             </h2>
           </div>
           <span className="hidden rounded-full bg-secondary-100 px-4 py-2 text-sm font-semibold text-secondary-1000 sm:block">
@@ -75,14 +75,14 @@ const ProductsSection = ({ products, selectedCategory, onProductClick, status = 
                     </span>
                   )}
                   {isSoldOut && (
-                    <span className="absolute right-5 top-5 rounded-full bg-text/85 px-3 py-1 text-xs font-bold text-surface backdrop-blur-sm">
-                      Sold out
+                  <span className="absolute right-5 top-5 rounded-full bg-text/85 px-3 py-1 text-xs font-bold text-surface backdrop-blur-sm">
+                    {t("products.soldOut")}
                     </span>
                   )}
                 </div>
                 <div className="p-5">
                   <p className="text-xs font-bold uppercase tracking-widest text-primary-600">
-                    {product.category}
+                    {categoryLabel(product.category)}
                   </p>
                   <h3 className="mt-2 text-xl font-black text-text">{product.name}</h3>
                   <p className="mt-2 min-h-12 text-sm leading-relaxed text-text-muted">
@@ -90,7 +90,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick, status = 
                   </p>
                   <div className="mt-5 flex items-center justify-between gap-3">
                     <span className="text-2xl font-black text-secondary-1000">
-                      {formatBDT(product.price)}
+                      {formatPrice(product.price)}
                     </span>
                     <button
                       type="button"
@@ -99,7 +99,7 @@ const ProductsSection = ({ products, selectedCategory, onProductClick, status = 
                       className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-surface transition hover:scale-105 hover:bg-primary-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-text-muted disabled:hover:scale-100"
                     >
                       <ShoppingBasket className="h-4 w-4" />
-                      {isSoldOut ? "Sold out" : "Buy now"}
+                      {isSoldOut ? t("products.soldOut") : t("products.buyNow")}
                     </button>
                   </div>
                 </div>

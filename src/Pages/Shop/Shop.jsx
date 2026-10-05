@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { AlertTriangle, Filter, RefreshCw, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
-import { pagesData } from "../../data/pages";
+import { useLanguage } from "../../context/language/useLanguage";
 import ProductsSection from "../Home/sections/ProductsSection";
 import ProductModal from "../Home/sections/ProductModal";
 import { useCart } from "../../Shared/useCart";
@@ -22,7 +22,8 @@ const Shop = () => {
   const { addToCart } = useCart();
   const { notice, report, dismiss } = useCartNotice();
   const { categories, products, status, error, reload } = useCatalog();
-  const copy = pagesData.shop;
+  const { pages, t, plural, categoryLabel, intlLocale } = useLanguage();
+  const copy = pages.shop;
 
   const addAndReport = (product) => report(addToCart(product), product);
 
@@ -54,11 +55,11 @@ const Shop = () => {
     return [...matching].sort((a, b) => {
       if (sort === "price-low") return a.price - b.price;
       if (sort === "price-high") return b.price - a.price;
-      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "name") return a.name.localeCompare(b.name, intlLocale);
       if (sort === "stock") return b.stock - a.stock;
       return 0;
     });
-  }, [age, category, inStockOnly, priceRange, products, search, sort]);
+  }, [age, category, inStockOnly, intlLocale, priceRange, products, search, sort]);
 
   const updateParam = (key, value) => {
     const next = new URLSearchParams(searchParams);
@@ -101,21 +102,21 @@ const Shop = () => {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-300 bg-primary-50 px-5 py-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-primary-900">
               <AlertTriangle className="h-5 w-5 shrink-0" />
-              {error?.message || "We could not load the toy catalogue."}
+              {error?.message || t("pages.shop.catalogueError")}
             </p>
             <button
               type="button"
               onClick={reload}
               className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-700"
             >
-              <RefreshCw className="h-4 w-4" /> Try again
+              <RefreshCw className="h-4 w-4" /> {t("pages.shop.tryAgain")}
             </button>
           </div>
         )}
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <label className="relative flex-1">
-            <span className="sr-only">Search products</span>
+            <span className="sr-only">{t("pages.shop.searchLabel")}</span>
             <Search className="absolute left-4 top-3.5 h-5 w-5 text-text-muted" />
             <input
               value={search}
@@ -137,7 +138,6 @@ const Shop = () => {
               {copy.sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
-              <option value="stock">Most in stock</option>
             </select>
           </label>
         </div>
@@ -196,8 +196,14 @@ const Shop = () => {
           <div className="min-w-0">
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-text-muted">
-                {filteredProducts.length} {filteredProducts.length === 1 ? "result" : "results"}
-                {category !== ALL_TOYS && <span> in <strong className="text-text">{category}</strong></span>}
+                {plural("pages.shop.results", filteredProducts.length)}
+                {/* The whole phrase carries the emphasis because in Bangla the
+                    category suffix attaches to the word itself. */}
+                {category !== ALL_TOYS && (
+                  <strong className="text-text">
+                    {t("pages.shop.resultsIn", { category: categoryLabel(category) })}
+                  </strong>
+                )}
               </p>
               <button type="button" onClick={() => setIsFiltersOpen(false)} className="inline-flex items-center gap-1 text-sm font-bold text-primary-700 lg:hidden">
                 {copy.closeLabel} <X className="h-4 w-4" />

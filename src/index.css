@@ -68,6 +68,13 @@
   /* ========== Radius tokens ========== */
   --radius-card: 1rem;
   --radius-button: 0.75rem;
+
+  /* ========== Type ========== */
+  /* Hind Siliguri covers Latin and Bengali in one family, so switching language
+     does not shift metrics or cause a flash of fallback glyphs. */
+  --font-sans:
+    "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", "SolaimanLipi",
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 :root {

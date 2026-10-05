@@ -1,9 +1,10 @@
-import { Sparkles, MessageCircle, ArrowRight, Smile } from "lucide-react";
+﻿import { Sparkles, MessageCircle, ArrowRight, Smile } from "lucide-react";
 import { whatsappUrl } from "../../../lib/whatsapp";
-import { pagesData } from "../../../data/pages";
+import { useLanguage } from "../../../context/language/useLanguage";
 
 const HeroSection = () => {
-  const hero = pagesData.hero;
+  const { pages, t } = useLanguage();
+  const hero = pages.hero;
 
   return (
     <section className="relative overflow-hidden bg-linear-to-br from-primary-100 via-surface to-accent-100 py-16 md:py-24">
@@ -29,13 +30,13 @@ const HeroSection = () => {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl bg-secondary-900 px-6 py-3 font-bold text-surface shadow-md transition hover:-translate-y-1 hover:bg-secondary-1000"
               >
-                <MessageCircle className="h-5 w-5" /> Chat with us
+                <MessageCircle className="h-5 w-5" /> {t("hero.chatWithUs")}
               </a>
               <a
                 href="#products"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-bold text-surface shadow-md transition hover:-translate-y-1 hover:bg-primary-700"
               >
-                Shop now <ArrowRight className="h-5 w-5" />
+                {t("hero.shopNow")} <ArrowRight className="h-5 w-5" />
               </a>
             </div>
           </div>

@@ -1,5 +1,9 @@
 import { resolveImageUrl } from "./api";
 
+// The "all categories" state is a sentinel compared with === and round-tripped
+// through ?category=. It stays a stable English string so URLs and equality
+// checks keep working regardless of the display language; the label the visitor
+// actually reads comes from the locale dictionary via ui.categories.allToys.
 export const ALL_TOYS = "All toys";
 
 // Products only carry a categoryId, so the name is resolved from the category list.

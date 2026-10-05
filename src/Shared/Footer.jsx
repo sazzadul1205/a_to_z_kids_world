@@ -1,7 +1,9 @@
 import { Link } from "react-router";
 import { MessageCircle, Send, Camera, Play, Mail, Phone, MapPin } from "lucide-react";
-import { storeData } from "../data/store";
+import { useLanguage } from "../context/language/useLanguage";
 
+// Keyed on the brand name, so these are identifiers rather than display copy and
+// must never be translated.
 const socialIcons = {
   Facebook: MessageCircle,
   Twitter: Send,
@@ -11,7 +13,8 @@ const socialIcons = {
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const { brand, tagline, contact, footerColumns, socials, legal } = storeData;
+  const { store, t } = useLanguage();
+  const { brand, tagline, contact, footerColumns, socials, legal } = store;
 
   return (
     <footer className="bg-footer text-footer-muted">
@@ -62,7 +65,7 @@ const Footer = () => {
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-footer-border pt-8 md:flex-row">
           <div className="flex items-center gap-4">
-            <span className="text-sm text-footer-muted">Follow us:</span>
+            <span className="text-sm text-footer-muted">{t("footer.followUs")}</span>
             <div className="flex gap-3">
               {socials.map((social) => {
                 const Icon = socialIcons[social.name] ?? MessageCircle;
@@ -73,7 +76,7 @@ const Footer = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-full bg-footer-border p-2 transition-colors duration-200 hover:bg-primary-600 hover:text-on-footer"
-                    aria-label={`Visit us on ${social.name}`}
+                    aria-label={t("footer.visitUsOn", { name: social.name })}
                   >
                     <Icon className="h-4 w-4 text-footer-muted transition-colors hover:text-on-footer" />
                   </a>

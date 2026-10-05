@@ -1,10 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Search, Menu, X, ShoppingBasket, Sparkles, Moon, Sun } from "lucide-react";
+import {
+  Search,
+  Menu,
+  X,
+  ShoppingBasket,
+  Sparkles,
+  Moon,
+  Sun,
+  Languages,
+} from "lucide-react";
 
-import { storeData } from "../data/store";
-import { formatBDT } from "../lib/currency";
 import { useTheme } from "../context/theme/useTheme";
+import { useLanguage } from "../context/language/useLanguage";
 import { useCatalog } from "../context/catalog/useCatalog";
 
 const Navbar = ({ onCartClick, cartCount }) => {
@@ -13,6 +21,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef(null);
   const { isDark, toggleTheme } = useTheme();
+  const { store, t, toggleLocale, localeLabel, isBangla } = useLanguage();
   const { products } = useCatalog();
   const navigate = useNavigate();
 
@@ -47,7 +56,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
     navigate(`/shop?q=${encodeURIComponent(product.name)}`);
   };
 
-  const { brand, navLinks, announcement } = storeData;
+  const { brand, navLinks, announcement } = store;
 
   return (
     <nav
@@ -89,7 +98,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
                 onChange={(e) => setSearch(e.target.value)}
                 onFocus={() => setIsSearchOpen(true)}
                 type="text"
-                placeholder="Search products..."
+                placeholder={t("nav.searchPlaceholder")}
                 className="w-full rounded-full border border-secondary-200 bg-secondary-50 px-4 py-2 pl-10 pr-4 text-text outline-none transition placeholder:text-text-muted focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-text-muted" />
@@ -103,7 +112,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
             <button
               type="button"
               onClick={onCartClick}
-              aria-label="Shopping basket"
+              aria-label={t("nav.cart")}
               className="relative rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600"
             >
               <ShoppingBasket className="h-5 w-5" />
@@ -116,14 +125,26 @@ const Navbar = ({ onCartClick, cartCount }) => {
             <button
               type="button"
               onClick={toggleTheme}
-              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+              aria-label={isDark ? t("nav.themeToLight") : t("nav.themeToDark")}
               className="rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-300"
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
             <button
+              type="button"
+              onClick={toggleLocale}
+              // Names the language it switches to, mirroring how the theme toggle
+              // names the theme it switches to.
+              aria-label={isBangla ? t("nav.switchToEnglish") : t("nav.switchToBangla")}
+              title={isBangla ? t("nav.switchToEnglish") : t("nav.switchToBangla")}
+              className="flex items-center gap-1.5 rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-300"
+            >
+              <Languages className="h-5 w-5" aria-hidden="true" />
+              <span className="text-xs font-bold leading-none">{localeLabel}</span>
+            </button>
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-label={isMenuOpen ? t("nav.menuClose") : t("nav.menuOpen")}
               className="rounded-full p-2 text-text transition hover:bg-secondary-100 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-300 md:hidden"
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -140,7 +161,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setIsSearchOpen(true)}
               type="text"
-              placeholder="Search products..."
+              placeholder={t("nav.searchPlaceholder")}
               className="w-full rounded-full border border-secondary-200 bg-secondary-50 px-4 py-2 pl-10 pr-4 text-text outline-none placeholder:text-text-muted focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-text-muted" />
@@ -168,6 +189,7 @@ const Navbar = ({ onCartClick, cartCount }) => {
 };
 
 const SearchResults = ({ products, onSelect }) => {
+  const { categoryLabel, formatPrice } = useLanguage();
   if (!products.length) return null;
   return (
     <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-surface p-2 text-left shadow-xl">
@@ -181,10 +203,10 @@ const SearchResults = ({ products, onSelect }) => {
           <img src={product.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
           <span className="min-w-0 flex-1">
             <strong className="block truncate text-sm text-text">{product.name}</strong>
-            <span className="block text-xs text-text-muted">{product.category}</span>
+            <span className="block text-xs text-text-muted">{categoryLabel(product.category)}</span>
           </span>
           <span className="shrink-0 text-sm font-bold text-primary-700">
-            {formatBDT(product.price)}
+            {formatPrice(product.price)}
           </span>
         </button>
       ))}

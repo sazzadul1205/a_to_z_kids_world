@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Playwright end-to-end output
+test-results
+playwright-report
+blob-report
+.playwright
+
 # Local env overrides. VITE_* values are committed only via .env.example.
 .env.local
 .env.*.local

@@ -25,4 +25,11 @@ export default defineConfig([
       globals: globals.node,
     },
   },
+  {
+    // The end-to-end suite drives the app from Node, not the browser bundle.
+    files: ['playwright.config.js', 'e2e/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

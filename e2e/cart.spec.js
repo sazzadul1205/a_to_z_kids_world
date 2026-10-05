@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from "@playwright/test";
 import { apiGet, openProduct, closeModal, productDialog, clearCart, recordRequests } from "./helpers.js";
 
 // The cart lives in localStorage and prices itself from the catalogue it fetched,
@@ -123,10 +123,10 @@ test.describe("whatsapp checkout", () => {
     await drawer(page).getByRole("button", { name: "Checkout" }).click();
     await expect(page).toHaveURL(/\/checkout/);
 
-    await page.getByLabel(/full name|name/i).first().fill("E2E Tester");
-    await page.getByLabel(/address|street/i).first().fill("12 Test Road");
-    await page.getByLabel(/city/i).fill("Dhaka");
-    await page.getByLabel(/postal|zip/i).fill("1212");
+    await page.getByLabel("Full name", { exact: true }).fill("E2E Tester");
+    await page.getByLabel("Street address", { exact: true }).fill("12 Test Road");
+    await page.getByLabel("City", { exact: true }).fill("Dhaka");
+    await page.getByLabel("Postal code", { exact: true }).fill("1212");
 
     const popupPromise = context.waitForEvent("page");
     await page.getByRole("button", { name: /send order on whatsapp/i }).click();
@@ -162,10 +162,10 @@ test.describe("whatsapp checkout", () => {
     await basketButton(page).click();
     await drawer(page).getByRole("button", { name: "Checkout" }).click();
 
-    await page.getByLabel(/full name|name/i).first().fill("E2E Tester");
-    await page.getByLabel(/address|street/i).first().fill("12 Test Road");
-    await page.getByLabel(/city/i).fill("Dhaka");
-    await page.getByLabel(/postal|zip/i).fill("1212");
+    await page.getByLabel("Full name", { exact: true }).fill("E2E Tester");
+    await page.getByLabel("Street address", { exact: true }).fill("12 Test Road");
+    await page.getByLabel("City", { exact: true }).fill("Dhaka");
+    await page.getByLabel("Postal code", { exact: true }).fill("1212");
 
     const calls = recordRequests(page);
     const popupPromise = context.waitForEvent("page");

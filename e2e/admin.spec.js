@@ -8,11 +8,26 @@ import {
   stamp,
   signIn,
   adminProductRow,
+  deleteAdminProduct,
   loginError,
+  RUN_ID,
 } from "./helpers.js";
 
 // The staff area is deliberately unlinked and Admin-only. These tests pin the
 // access rules, the session lifecycle, and the absence of public sign-up.
+
+// The catalogue test relies on its own delete to clean up, which means a failed
+// run leaves a product behind for good. Matching on the run id rather than the
+// exact name also catches the copy the edit test renamed it to, so repeated runs
+// cannot quietly grow the seeded catalogue.
+test.afterAll(async () => {
+  const token = await apiLogin();
+  const all = await apiGet("/products");
+  const mine = (all.body || []).filter((product) => product.name?.includes(RUN_ID));
+  for (const product of mine) {
+    await apiAsAdmin(token, "DELETE", `/products/${product._id}`);
+  }
+});
 
 test.describe("admin access", () => {
   test("the staff area is reachable directly but never linked publicly", async ({ page }) => {
@@ -128,15 +143,9 @@ test.describe("catalogue administration", () => {
     const afterEdit = await apiGet("/products");
     expect(afterEdit.body.find((p) => p.name === `${name} edited`)).toMatchObject({ stock: 9 });
 
-    // Delete. The panel confirms with window.confirm, which blocks the handler
-    // until the dialog is answered.
-    page.once("dialog", (dialog) => dialog.accept());
-    await adminProductRow(page, `${name} edited`).getByRole("button", { name: /^delete$/i }).click();
-
-    await expect(async () => {
-      const final = await apiGet("/products");
-      expect(final.body.some((p) => p.name === `${name} edited`)).toBe(false);
-    }).toPass({ timeout: 15_000 });
+    // Delete. The panel confirms with window.confirm; see deleteAdminProduct for
+    // why this retries and what it verifies.
+    await deleteAdminProduct(page, `${name} edited`, apiGet);
   });
 
   test("catalogue writes are refused without a valid admin token", async () => {

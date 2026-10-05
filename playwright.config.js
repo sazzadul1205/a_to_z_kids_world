@@ -17,6 +17,10 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: process.env.E2E_BASE_URL || "http://localhost:5173",
+    // The app picks a language from navigator.languages on a first visit. Pinning
+    // the browser locale keeps the suite on English, which the assertions below
+    // are written against.
+    locale: "en-US",
     actionTimeout: 15_000,
     navigationTimeout: 20_000,
     trace: "retain-on-failure",

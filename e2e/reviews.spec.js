@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from "@playwright/test";
 import {
   apiGet,
   API,
@@ -8,7 +8,7 @@ import {
   stamp,
   apiLogin,
   apiAsAdmin,
-  shownReviewCount,
+  expectReviewCount,
   shownAverage,
   RUN_ID,
 } from "./helpers.js";
@@ -55,7 +55,7 @@ test.describe("public reviews", () => {
     await expect(dialog.getByRole("heading", { name: /what families say/i })).toBeVisible();
 
     // Both halves of the aggregate must agree with the API.
-    expect(await shownReviewCount(page)).toBe(existing.body.length);
+    await expectReviewCount(page, existing.body.length);
 
     const summary = await apiGet(`/reviews/product/${product._id}/summary`);
     expect(await shownAverage(page)).toBeCloseTo(Number(summary.body.averageRating), 1);
@@ -82,13 +82,16 @@ test.describe("public reviews", () => {
     const before = await apiGet(`/reviews?productId=${product._id}`);
 
     await openProduct(page, product.name);
-    const countBefore = await shownReviewCount(page);
+    // Wait for the on-screen count to reach the API's value before deriving
+    // anything from it, otherwise the arithmetic below starts from a stale 0.
+    await expectReviewCount(page, before.body.length);
+    const countBefore = before.body.length;
 
     await submitReview(page, { name: stamp("Averager"), rating: 4, comment: "Solid buy." });
 
     // The new aggregate must appear without a reload, which is what proves the
     // mutation invalidated the cached summary rather than leaving it stale.
-    expect(await shownReviewCount(page)).toBe(countBefore + 1);
+    await expectReviewCount(page, countBefore + 1);
 
     // Recompute independently from the API to confirm the aggregate is real.
     const after = await apiGet(`/reviews?productId=${product._id}`);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CartContext } from "./cart-context";
-import { toBDTAmount } from "../lib/currency";
-import { useCatalog } from "../context/catalog/useCatalog";
+import { toBDTAmount } from "../../lib/currency";
+import { useCatalog } from "../catalog/useCatalog";
 
 const CART_STORAGE_KEY = "a-to-z-kids-cart";
 

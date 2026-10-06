@@ -9,7 +9,7 @@ import {
   Tags,
   UserCog,
 } from "lucide-react";
-import { useAuth } from "../../Shared/useAuth";
+import { useAuth } from "../../context/auth/useAuth";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },

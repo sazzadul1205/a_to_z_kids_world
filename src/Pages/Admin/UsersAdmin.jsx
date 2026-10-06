@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { KeyRound, Loader2, Plus, Save, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { useUserMutations, useUsersQuery } from "../../hooks/useAdminQueries";
-import { useAuth } from "../../Shared/useAuth";
+import { useAuth } from "../../context/auth/useAuth";
 import {
   AdminEmpty,
   AdminError,

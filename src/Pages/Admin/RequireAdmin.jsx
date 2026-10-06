@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router";
-import { useAuth } from "../../Shared/useAuth";
+import { useAuth } from "../../context/auth/useAuth";
 import { AdminLoader } from "./admin-ui";
 
 // Guards every /admin route. Nothing links here: the storefront is a showcase

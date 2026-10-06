@@ -35,15 +35,20 @@ is therefore **public**. Keep secrets out of this file.
 
 ```
 src/
-  context/catalog/  loads categories + products once and shares them
-  context/query/    QueryClient provider and defaults
-  hooks/            query and mutation hooks per resource
-  lib/              axios client, cache keys, formatting helpers
-  Pages/Home/       hero, categories, product grid, product modal
-  Pages/Shop/       filtering, sorting, search
-  Pages/Checkout/   collects details, then hands the basket to WhatsApp
-  Pages/Admin/      unlinked staff area
-  Shared/           navbar, footer, cart drawer, contexts
+  context/auth/      session token + admin-gated auth provider
+  context/cart/      basket context + hooks (localStorage)
+  context/catalog/   product/category catalogue provider + hooks
+  context/language/  en/Bn i18n (LanguageProvider, useLanguage)
+  context/query/     TanStack Query provider + defaults
+  context/theme/     dark-mode class toggle
+  hooks/             per-resource query/mutation hooks
+  lib/               axios client, cache keys, formatting helpers
+  layout/            site Layout (wraps Routes)
+  Pages/Home/        hero, categories, product grid, product modal
+  Pages/Shop/        filtering, sorting, search
+  Pages/Checkout/    collects details, then hands the basket to WhatsApp
+  Pages/Admin/       unlinked staff area
+  Shared/            navbar, footer, cart drawer, cart notice
 ```
 
 ### Data loading

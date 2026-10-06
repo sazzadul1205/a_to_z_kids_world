@@ -2,8 +2,8 @@ import { Outlet, useLocation } from "react-router";
 import Navbar from "../Shared/Navbar";
 import Footer from "../Shared/Footer";
 import { useEffect, useState } from "react";
-import { CartProvider } from "../Shared/CartContext";
-import { useCart } from "../Shared/useCart";
+import { CartProvider } from "../context/cart/CartProvider";
+import { useCart } from "../context/cart/useCart";
 import CartDrawer from "../Shared/CartDrawer";
 
 const LayoutContent = () => {

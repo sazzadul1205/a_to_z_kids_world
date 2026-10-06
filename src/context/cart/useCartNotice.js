@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLanguage } from "../context/language/useLanguage";
+import { useLanguage } from "../language/useLanguage";
 
 // The basket can refuse a toy (sold out, or already holding every unit in
 // stock). That answer used to be silent, so the shopper saw the product dialog

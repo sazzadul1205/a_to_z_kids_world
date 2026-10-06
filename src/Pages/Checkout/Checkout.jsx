@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2, MessageCircle, ShieldCheck, Truck, Minus, Plus } from "lucide-react";
 import { Link } from "react-router";
-import { useCart } from "../../Shared/useCart";
+import { useCart } from "../../context/cart/useCart";
 import { toBDTAmount } from "../../lib/currency";
 import { createWhatsAppUrl } from "../../lib/whatsapp";
 import { useLanguage } from "../../context/language/useLanguage";

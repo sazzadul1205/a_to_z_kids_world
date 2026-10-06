@@ -1,6 +1,6 @@
 import { Minus, Plus, ShoppingBasket, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useCart } from "./useCart";
+import { useCart } from "../context/cart/useCart";
 import { useLanguage } from "../context/language/useLanguage";
 import { formatBDT, toBDTAmount } from "../lib/currency";
 

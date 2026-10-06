@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, useLocation } from "react-router";
 import { KeyRound, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
-import { useAuth } from "../../Shared/useAuth";
+import { useAuth } from "../../context/auth/useAuth";
 
 const AdminLogin = () => {
   const { signIn, isAuthenticated, isAdmin, status } = useAuth();

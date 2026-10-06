@@ -1,10 +1,10 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 import { ThemeProvider } from "./context/theme/ThemeContext";
 import { AppQueryProvider } from "./context/query/AppQueryProvider";
-import { CatalogProvider } from "./context/catalog/CatalogContext";
+import { CatalogProvider } from "./context/catalog/CatalogProvider";
 import { LanguageProvider } from "./context/language/LanguageProvider";
-import { AuthProvider } from "./Shared/AuthContext";
-import Layout from "./Layouts/Layout";
+import { AuthProvider } from "./context/auth/AuthProvider";
+import Layout from "./layout/Layout";
 import Home from "./Pages/Home/Home";
 import NotFound from "./Pages/NotFound/NotFound";
 import Checkout from "./Pages/Checkout/Checkout";

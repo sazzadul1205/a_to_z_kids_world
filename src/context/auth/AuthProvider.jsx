@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthContext } from "./auth-context";
-import { authApi } from "../lib/api";
-import { clearToken, getToken, onTokenChange, setToken } from "../lib/authToken";
-import { useSessionQuery } from "../hooks/useAdminQueries";
-import { queryKeys } from "../lib/queryKeys";
+import { authApi } from "../../lib/api";
+import { clearToken, getToken, onTokenChange, setToken } from "../../lib/authToken";
+import { useSessionQuery } from "../../hooks/useAdminQueries";
+import { queryKeys } from "../../lib/queryKeys";
 
 // Admin-only session. The storefront has no shopper accounts: this provider
 // exists purely to guard the unlinked /admin routes.

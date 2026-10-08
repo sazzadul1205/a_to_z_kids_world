@@ -62,23 +62,6 @@ export function useSessionQuery({ enabled }) {
   });
 }
 
-export function useReviewMutations() {
-  const invalidate = useInvalidate();
-
-  return {
-    update: useMutation({
-      mutationFn: ({ id, ...data }) => reviewsApi.update(id, data),
-      // ["reviews"] is a prefix of the per-product and summary keys, so this
-      // invalidates every review view at once.
-      onSuccess: () => invalidate([queryKeys.reviews]),
-    }),
-    remove: useMutation({
-      mutationFn: (id) => reviewsApi.remove(id),
-      onSuccess: () => invalidate([queryKeys.reviews]),
-    }),
-  };
-}
-
 export function useOrderMutations() {
   const invalidate = useInvalidate();
 
@@ -150,6 +133,49 @@ export function useProductMutations() {
     remove: useMutation({
       mutationFn: (id) => productsApi.remove(id),
       onSuccess: () => invalidate(keys),
+    }),
+    toggleActive: useMutation({
+      mutationFn: (id) => productsApi.toggleActive(id),
+      onSuccess: () => invalidate(keys),
+    }),
+    setReviewsEnabled: useMutation({
+      mutationFn: ({ id, reviewsEnabled }) =>
+        productsApi.setReviewsEnabled(id, reviewsEnabled),
+      onSuccess: () => invalidate(keys),
+    }),
+    bulkDelete: useMutation({
+      mutationFn: (ids) => productsApi.bulkDelete(ids),
+      onSuccess: () => invalidate(keys),
+    }),
+    bulkSetFlag: useMutation({
+      mutationFn: ({ ids, flag, value }) =>
+        productsApi.bulkSetFlag(ids, flag, value),
+      onSuccess: () => invalidate(keys),
+    }),
+  };
+}
+
+export function useReviewMutations() {
+  const invalidate = useInvalidate();
+
+  return {
+    update: useMutation({
+      mutationFn: ({ id, ...data }) => reviewsApi.update(id, data),
+      // ["reviews"] is a prefix of the per-product and summary keys, so this
+      // invalidates every review view at once.
+      onSuccess: () => invalidate([queryKeys.reviews]),
+    }),
+    remove: useMutation({
+      mutationFn: (id) => reviewsApi.remove(id),
+      onSuccess: () => invalidate([queryKeys.reviews]),
+    }),
+    bulkDelete: useMutation({
+      mutationFn: (ids) => reviewsApi.bulkDelete(ids),
+      onSuccess: () => invalidate([queryKeys.reviews]),
+    }),
+    deleteByProduct: useMutation({
+      mutationFn: (productId) => reviewsApi.deleteByProduct(productId),
+      onSuccess: () => invalidate([queryKeys.reviews]),
     }),
   };
 }

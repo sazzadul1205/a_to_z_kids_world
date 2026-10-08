@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
-import { ImagePlus, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { resolveImageUrl, uploadsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { useProductMutations } from "../../hooks/useAdminQueries";
 import { formatBDT } from "../../lib/currency";
-import { confirmDialog } from "../../lib/swal";
+import { confirmDialog, toastError, toastSuccess } from "../../lib/swal";
 import {
   AdminEmpty,
   AdminError,
@@ -46,21 +46,50 @@ const ProductsAdmin = () => {
   const [draft, setDraft] = useState(emptyDraft);
   const [formError, setFormError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState(null);
+  const [selected, setSelected] = useState(new Set());
   const fileInputRef = useRef(null);
 
-  const { create, update, remove } = useProductMutations();
+  const {
+    create,
+    update,
+    remove,
+    toggleActive,
+    setReviewsEnabled,
+    bulkDelete,
+    bulkSetFlag,
+  } = useProductMutations();
 
   // Uploading does not touch the catalogue, so it invalidates nothing; it only
   // needs to report whether it is in flight.
   const upload = useMutation({ mutationFn: (file) => uploadsApi.image(file) });
 
-  const busy = create.isPending || update.isPending || remove.isPending;
+  const busy =
+    create.isPending ||
+    update.isPending ||
+    remove.isPending ||
+    toggleActive.isPending ||
+    setReviewsEnabled.isPending ||
+    bulkDelete.isPending ||
+    bulkSetFlag.isPending;
   const uploading = upload.isPending;
 
   // The backend requires a categoryId, so fall back to the first one rather
   // than waiting for the draft to be filled in.
   const effectiveCategoryId =
     draft.categoryId || (categories.length > 0 ? String(categories[0]._id) : "");
+
+  const toggleSelect = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const selectAll = () =>
+    setSelected((prev) =>
+      prev.size === products.length ? new Set() : new Set(products.map((p) => p._id)),
+    );
 
   const closeForm = () => {
     setIsFormOpen(false);
@@ -148,6 +177,88 @@ const ProductsAdmin = () => {
     }
   };
 
+  const handleToggleActive = async (product) => {
+    try {
+      await toggleActive.mutateAsync(product._id);
+      toastSuccess(
+        product.isActive === false
+          ? `${product.name} is now live in the shop.`
+          : `${product.name} is hidden from the shop.`,
+      );
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleToggleReviews = async (product) => {
+    const next = product.reviewsEnabled !== false ? false : true;
+    try {
+      await setReviewsEnabled.mutateAsync({
+        id: product._id,
+        reviewsEnabled: next,
+      });
+      toastSuccess(
+        next
+          ? `Reviews are now open for ${product.name}.`
+          : `Reviews are disabled for ${product.name}.`,
+      );
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const confirmed = await confirmDialog({
+      title: `Delete ${ids.length} product${ids.length === 1 ? "" : "s"}?`,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await bulkDelete.mutateAsync(ids);
+      setSelected(new Set());
+      toastSuccess(`${ids.length} product${ids.length === 1 ? "" : "s"} deleted.`);
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleBulkActivate = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    try {
+      await bulkSetFlag.mutateAsync({ ids, flag: "isActive", value: true });
+      setSelected(new Set());
+      toastSuccess(`${ids.length} product${ids.length === 1 ? "" : "s"} activated.`);
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const confirmed = await confirmDialog({
+      title: `Hide ${ids.length} product${ids.length === 1 ? "" : "s"} from the shop?`,
+      text: "They stay in the catalogue and can be reactivated later.",
+      confirmText: "Hide",
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await bulkSetFlag.mutateAsync({ ids, flag: "isActive", value: false });
+      setSelected(new Set());
+      toastSuccess(`${ids.length} product${ids.length === 1 ? "" : "s"} hidden.`);
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
   if (status === "loading") return <AdminLoader label="Loading products..." />;
 
   return (
@@ -175,9 +286,52 @@ const ProductsAdmin = () => {
       )}
 
       <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h2 className="text-lg font-black text-text">
-          All products <span className="text-text-muted">({products.length})</span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-black text-text">
+            All products <span className="text-text-muted">({products.length})</span>
+          </h2>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-surface-soft px-3 py-1.5 text-xs font-bold text-text">
+              <input
+                type="checkbox"
+                checked={selected.size > 0 && selected.size === products.length}
+                onChange={selectAll}
+                className="h-4 w-4 rounded border-border"
+              />
+              Select all
+            </label>
+            <button
+              type="button"
+              disabled={selected.size === 0 || busy}
+              onClick={handleBulkActivate}
+              className={ghostButtonClass}
+            >
+              Activate
+            </button>
+            <button
+              type="button"
+              disabled={selected.size === 0 || busy}
+              onClick={handleBulkDeactivate}
+              className={ghostButtonClass}
+            >
+              Hide
+            </button>
+            <button
+              type="button"
+              disabled={selected.size === 0 || busy}
+              onClick={handleBulkDelete}
+              className={dangerButtonClass}
+            >
+              <Trash2 className="h-4 w-4" /> Delete
+            </button>
+          </div>
+        </div>
+
+        {selected.size > 0 && (
+          <p className="mt-2 text-xs text-text-muted">
+            {selected.size} product{selected.size === 1 ? "" : "s"} selected.
+          </p>
+        )}
 
         <div className="mt-4 space-y-3">
           {products.length === 0 ? (
@@ -186,9 +340,17 @@ const ProductsAdmin = () => {
             products.map((product) => (
               <div
                 key={product._id}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3"
+                className={`flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3 ${
+                  selected.has(product._id) ? "ring-2 ring-primary-200" : ""
+                }`}
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <label className="flex min-w-0 cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(product._id)}
+                    onChange={() => toggleSelect(product._id)}
+                    className="h-4 w-4 rounded border-border"
+                  />
                   <img
                     src={product.image}
                     alt=""
@@ -202,10 +364,52 @@ const ProductsAdmin = () => {
                         {product.stock} in stock
                       </span>
                     </p>
+                    <p className="truncate text-xs text-text-muted">
+                      {product.isActive === false ? (
+                        <span className="text-primary-700">Hidden from shop</span>
+                      ) : (
+                        <span className="text-secondary-1000">Live in shop</span>
+                      )}{" "}
+                      ·{" "}
+                      {product.reviewsEnabled === false ? (
+                        <span className="text-primary-700">Reviews disabled</span>
+                      ) : (
+                        <span className="text-secondary-1000">Reviews on</span>
+                      )}
+                    </p>
                   </div>
-                </div>
+                </label>
 
-                <div className="flex shrink-0 gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleToggleActive(product)}
+                    title={
+                      product.isActive === false ? "Activate product" : "Hide product"
+                    }
+                    className={ghostButtonClass}
+                  >
+                    {product.isActive === false ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
+                    )}
+                    {product.isActive === false ? "Activate" : "Hide"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleToggleReviews(product)}
+                    title={
+                      product.reviewsEnabled === false
+                        ? "Enable reviews"
+                        : "Disable reviews"
+                    }
+                    className={ghostButtonClass}
+                  >
+                    {product.reviewsEnabled === false ? "Reviews on" : "Reviews off"}
+                  </button>
                   <button type="button" onClick={() => openEdit(product)} className={ghostButtonClass}>
                     <Pencil className="h-4 w-4" /> Edit
                   </button>

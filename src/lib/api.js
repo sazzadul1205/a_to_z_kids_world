@@ -96,6 +96,13 @@ export const productsApi = {
   create: (data) => api.post("/products", data),
   update: (id, data) => api.put(`/products/${id}`, data),
   remove: (id) => api.delete(`/products/${id}`),
+  // Staff-only toggles and bulk actions.
+  toggleActive: (id) => api.patch(`/products/${id}/toggle-active`),
+  setReviewsEnabled: (id, reviewsEnabled) =>
+    api.patch(`/products/${id}/reviews`, { reviewsEnabled }),
+  bulkDelete: (ids) => api.post("/products/bulk/delete", { ids }),
+  bulkSetFlag: (ids, flag, value) =>
+    api.post("/products/bulk/flag", { ids, flag, value }),
 };
 
 export const reviewsApi = {
@@ -104,6 +111,9 @@ export const reviewsApi = {
   create: (data) => api.post("/reviews", data),
   update: (id, data) => api.put(`/reviews/${id}`, data),
   remove: (id) => api.delete(`/reviews/${id}`),
+  // Staff-only bulk actions.
+  bulkDelete: (ids) => api.post("/reviews/bulk/delete", { ids }),
+  deleteByProduct: (productId) => api.delete(`/reviews/product/${productId}`),
 };
 
 export const ordersApi = {

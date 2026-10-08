@@ -387,6 +387,7 @@ const bn = {
       reviewsHeading: "পরিবারের মতামত",
       loadingReviews: "রিভিউ লোড হচ্ছে...",
       noReviews: "এখনো কোনো রিভিউ নেই। প্রথম মতামতটি আপনিই দিন।",
+      reviewsDisabled: "এই স্টোরের রিভিউ বন্ধ আছে।",
       leaveReview: "রিভিউ দিন",
       yourName: "আপনার নাম",
       namePlaceholder: "উদাহরণ: আলেক এক্সপ্লোরার",

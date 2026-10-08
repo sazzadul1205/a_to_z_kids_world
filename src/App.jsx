@@ -4,6 +4,7 @@ import { AppQueryProvider } from "./context/query/AppQueryProvider";
 import { CatalogProvider } from "./context/catalog/CatalogProvider";
 import { LanguageProvider } from "./context/language/LanguageProvider";
 import { AuthProvider } from "./context/auth/AuthProvider";
+import { ReviewProvider } from "./context/review/ReviewProvider";
 import Layout from "./layout/Layout";
 import Home from "./Pages/Home/Home";
 import NotFound from "./Pages/NotFound/NotFound";
@@ -23,6 +24,7 @@ import UsersAdmin from "./Pages/Admin/UsersAdmin";
 function App() {
   return (
     <AppQueryProvider>
+      <ReviewProvider>
       <LanguageProvider>
       <ThemeProvider>
         <AuthProvider>
@@ -65,6 +67,7 @@ function App() {
         </AuthProvider>
       </ThemeProvider>
       </LanguageProvider>
+      </ReviewProvider>
     </AppQueryProvider>
   );
 }

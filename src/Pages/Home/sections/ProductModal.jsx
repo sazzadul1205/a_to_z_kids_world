@@ -1,35 +1,29 @@
-import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { X, Check, ShieldCheck, Star, Truck, Loader2, MessageSquarePlus } from "lucide-react";
-import { reviewsApi } from "../../../lib/api";
 import { useProductReviews } from "../../../hooks/useProductReviews";
 import { starsForRating } from "../../../lib/presentation";
 import { useLanguage } from "../../../context/language/useLanguage";
-
-const EMPTY_DRAFT = { name: "", rating: 5, comment: "" };
+import { useReview } from "../../../context/review/useReview";
 
 const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
-  const [draft, setDraft] = useState(EMPTY_DRAFT);
-  const [submitError, setSubmitError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
-  const { reviews, summary, status, reload } = useProductReviews(product?._id);
+  const {
+    draft,
+    setDraft,
+    submitError,
+    submitted,
+    isSubmitting,
+    submitReview,
+    resetReview,
+  } = useReview();
+  const { reviews, summary, status } = useProductReviews(product?._id);
   const { t, plural, categoryLabel, formatPrice } = useLanguage();
 
-  // A new review changes both the list and the aggregate, so the mutation
-  // refreshes them instead of the component refetching by hand.
-  const submitReview = useMutation({
-    mutationFn: (review) => reviewsApi.create(review),
-    onSuccess: () => {
-      setDraft(EMPTY_DRAFT);
-      setSubmitted(true);
-      setSubmitError(null);
-      reload();
-    },
-    onError: (err) => {
-      setSubmitted(false);
-      setSubmitError(err.message);
-    },
-  });
+  // The review form is global; a different product must start from a
+  // clean form so one product's draft or success state never leaks
+  // into another.
+  useEffect(() => {
+    resetReview();
+  }, [product?._id, resetReview]);
 
   useEffect(() => {
     if (!product) return undefined;
@@ -56,12 +50,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
 
   const handleSubmitReview = (event) => {
     event.preventDefault();
-    submitReview.mutate({
-      productId: product._id,
-      name: draft.name.trim(),
-      rating: Number(draft.rating),
-      comment: draft.comment.trim(),
-    });
+    submitReview(product._id);
   };
 
   return (
@@ -91,7 +80,7 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
           className="h-36 w-full object-cover object-center sm:h-44 md:order-2 md:h-107.5"
         />
 
-        <div className="min-h-0 overflow-y-auto p-4 sm:order-1 sm:p-6 md:overflow-y-visible">
+        <div className="min-h-0 overflow-y-auto p-4 sm:order-1 sm:p-6">
           <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
             {categoryLabel(product.category)}
           </p>
@@ -187,7 +176,13 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
               {t("modal.reviewsHeading")}
             </h3>
 
-            {status === "loading" && (
+            {summary?.disabled ? (
+              <p className="mt-4 rounded-xl bg-surface-soft px-4 py-3 text-sm text-text-muted">
+                {t("modal.reviewsDisabled")}
+              </p>
+            ) : (
+              <>
+                {status === "loading" && (
               <p className="mt-4 flex items-center gap-2 text-sm text-text-muted">
                 <Loader2 className="h-4 w-4 animate-spin" /> {t("modal.loadingReviews")}
               </p>
@@ -288,12 +283,14 @@ const ProductModal = ({ product, onClose, onAddToCart, onBuyNow }) => {
 
               <button
                 type="submit"
-                disabled={submitReview.isPending}
+                disabled={isSubmitting}
                 className="w-full rounded-xl bg-brand-fill-alt px-4 py-2.5 font-bold text-ink-on-brand transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitReview.isPending ? t("modal.publishing") : t("modal.publishReview")}
+                {isSubmitting ? t("modal.publishing") : t("modal.publishReview")}
               </button>
             </form>
+              </>
+            )}
           </section>
         </div>
       </div>

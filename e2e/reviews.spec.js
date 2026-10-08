@@ -40,9 +40,24 @@ async function submitReview(page, { name, rating, comment }) {
   await expect(dialog.getByText(/review has been published/i)).toBeVisible();
 }
 
+// The aggregate assertions need a product that already has reviews: with
+// none, the modal renders "no ratings yet" instead of an average, and
+// there is nothing to compare against. The seeded catalogue gives every
+// seeded product three reviews, so this picks the first in-stock one of
+// those rather than whatever sorts first overall.
 async function firstInStockProduct() {
-  const products = await apiGet("/products");
-  return products.body.find((p) => p.stock > 0);
+  const [products, reviews] = await Promise.all([
+    apiGet("/products"),
+    apiGet("/reviews"),
+  ]);
+  const withReviews = new Set((reviews.body || []).map((r) => String(r.productId)));
+  const product = products.body.find(
+    (p) => p.stock > 0 && withReviews.has(String(p._id)),
+  );
+  if (!product) {
+    throw new Error("no in-stock product with reviews is seeded");
+  }
+  return product;
 }
 
 test.describe("public reviews", () => {
@@ -111,7 +126,7 @@ test.describe("public reviews", () => {
     await expect(productDialog(page).getByText(/published/i)).toHaveCount(0);
   });
 
-  test("reviews are per product, not global", async ({ page }) => {
+  test("a review is attached to the product it was left for", async ({ page }) => {
     const products = await apiGet("/products");
     const withTwo = products.body.slice(0, 2);
     expect(withTwo.length).toBe(2);

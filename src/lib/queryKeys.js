@@ -8,6 +8,8 @@ export const queryKeys = {
   reviews: ["reviews"],
   productReviews: (productId) => ["reviews", { productId }],
   reviewSummary: (productId) => ["reviews", "summary", productId],
+  settings: ["settings"],
+  reviewSettings: ["settings", "reviews"],
   orders: ["orders"],
   users: ["users"],
   session: ["session"],

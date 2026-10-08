@@ -2,14 +2,17 @@ import { useState } from "react";
 import { Loader2, Save, Trash2 } from "lucide-react";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { starsForRating } from "../../lib/presentation";
-import { useReviewMutations, useReviewsQuery } from "../../hooks/useAdminQueries";
+import { useReviewMutations, useReviewSettingsQuery, useReviewsQuery, useUpdateReviewSettings } from "../../hooks/useAdminQueries";
 import { confirmDialog, toastError, toastSuccess } from "../../lib/swal";
+import Pagination from "../../Components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
 import {
   AdminEmpty,
   AdminError,
   AdminLoader,
   dangerButtonClass,
   fieldClass,
+  ghostButtonClass,
 } from "./admin-ui";
 
 const ReviewsAdmin = () => {
@@ -21,10 +24,17 @@ const ReviewsAdmin = () => {
 
   const { status, error, data, refetch } = useReviewsQuery();
   const { update, remove, bulkDelete } = useReviewMutations();
+  const { data: reviewSettings } = useReviewSettingsQuery();
+  const updateReviewSettings = useUpdateReviewSettings();
+  // The review configuration is a single store-wide
+  // switch, not a per-product flag.
+  const reviewsEnabled = reviewSettings?.reviewsEnabled !== false;
 
   const reviews = data ?? [];
   const busy = update.isPending || remove.isPending || bulkDelete.isPending;
   const productNames = new Map(products.map((product) => [String(product._id), product.name]));
+  const { page, setPage, pageSize, total, totalPages, window: visibleReviews } =
+    usePagination(reviews);
 
   const toggleSelect = (id) =>
     setSelected((prev) => {
@@ -90,6 +100,33 @@ const ReviewsAdmin = () => {
     }
   };
 
+  // The review configuration is a single store-wide
+  // switch, not a per-product flag.
+  const handleToggleReviews = async () => {
+    const next = !reviewsEnabled;
+    if (!next) {
+      const confirmed = await confirmDialog({
+        title: "Disable customer reviews?",
+        text: "Shoppers will no longer see the review section, and publishing is blocked on every product. Existing reviews are kept and staff can still moderate them here.",
+        confirmText: "Yes, disable",
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    updateReviewSettings.mutate(next, {
+      onSuccess: () => {
+        toastSuccess(
+          next
+            ? "Customer reviews are now open."
+            : "Customer reviews are now closed.",
+        );
+      },
+      onError: (err) => {
+        toastError(err.message);
+      },
+    });
+  };
+
   if (status === "pending") return <AdminLoader label="Loading reviews..." />;
 
   return (
@@ -98,6 +135,38 @@ const ReviewsAdmin = () => {
         <p className="text-sm font-bold uppercase tracking-widest text-primary-600">Feedback</p>
         <h1 className="mt-1 text-3xl font-black text-text sm:text-4xl">Reviews</h1>
       </header>
+
+      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <h2 className="text-lg font-black text-text">Review configuration</h2>
+        <p className="mt-1 text-sm text-text-muted">
+          One switch for the whole shop — reviews are global, not
+          per product. Closing them hides the review section on
+          every product page and blocks publishing. Existing
+          reviews are kept and staff can still moderate them below.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-bold text-text">Allow customer reviews</p>
+            <p className="text-xs text-text-muted">
+              {reviewsEnabled
+                ? "Open — shoppers can read and publish reviews on any product."
+                : "Closed — the review section is hidden on every product page."}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={updateReviewSettings.isPending}
+            onClick={handleToggleReviews}
+            className={ghostButtonClass}
+          >
+            {updateReviewSettings.isPending
+              ? "Saving..."
+              : reviewsEnabled
+                ? "Close reviews"
+                : "Open reviews"}
+          </button>
+        </div>
+      </section>
 
       {(actionError || error) && (
         <AdminError message={actionError?.message || error?.message || "Something went wrong."} onRetry={refetch} />
@@ -139,7 +208,7 @@ const ReviewsAdmin = () => {
           {reviews.length === 0 ? (
             <AdminEmpty title="No reviews yet" message="Shoppers can leave reviews from any product page." />
           ) : (
-            reviews.map((review) => (
+            visibleReviews.map((review) => (
               <div
                 key={review._id}
                 className={`rounded-xl bg-surface-soft px-4 py-3 ${
@@ -152,6 +221,10 @@ const ReviewsAdmin = () => {
                       type="checkbox"
                       checked={selected.has(review._id)}
                       onChange={() => toggleSelect(review._id)}
+                      // The wrapping label carries the row text,
+                      // which would otherwise become the checkbox's
+                      // accessible name.
+                      aria-label={`Select the review by ${review.name}`}
                       className="mt-1 h-4 w-4 rounded border-border"
                     />
                     <div className="min-w-0">
@@ -244,6 +317,15 @@ const ReviewsAdmin = () => {
             ))
           )}
         </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          className="mt-4"
+        />
       </section>
 
       <p className="text-xs text-text-muted">

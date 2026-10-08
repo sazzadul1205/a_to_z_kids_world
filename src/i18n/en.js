@@ -389,6 +389,7 @@ const en = {
       reviewsHeading: "What families say",
       loadingReviews: "Loading reviews...",
       noReviews: "No reviews yet. Be the first to share what you think.",
+      reviewsDisabled: "Reviews are disabled for this store.",
       leaveReview: "Leave a review",
       yourName: "Your name",
       namePlaceholder: "Alex Explorer",

@@ -6,6 +6,7 @@ import {
   ordersApi,
   productsApi,
   reviewsApi,
+  settingsApi,
   usersApi,
 } from "../lib/api";
 import { ADMIN_STALE_TIME, queryKeys } from "../lib/queryKeys";
@@ -44,6 +45,34 @@ export function useUsersQuery() {
     queryKey: queryKeys.users,
     queryFn: ({ signal }) => usersApi.list(signal),
     staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+// The review configuration is a single store-wide switch,
+// not a per-product flag, so it reads and writes the
+// settings document.
+export function useReviewSettingsQuery() {
+  return useQuery({
+    queryKey: queryKeys.reviewSettings,
+    queryFn: ({ signal }) => settingsApi.get(signal),
+    select: (settings) => ({
+      reviewsEnabled: settings?.reviewsEnabled !== false,
+    }),
+  });
+}
+
+export function useUpdateReviewSettings() {
+  const client = useQueryClient();
+  // Closing reviews changes what every summary reports
+  // (disabled) and what every list returns, so both the
+  // settings key and the whole ["reviews"] tree refresh.
+  return useMutation({
+    mutationFn: (reviewsEnabled) =>
+      settingsApi.updateReviews(reviewsEnabled),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: queryKeys.settings });
+      client.invalidateQueries({ queryKey: queryKeys.reviews });
+    },
   });
 }
 
@@ -136,11 +165,6 @@ export function useProductMutations() {
     }),
     toggleActive: useMutation({
       mutationFn: (id) => productsApi.toggleActive(id),
-      onSuccess: () => invalidate(keys),
-    }),
-    setReviewsEnabled: useMutation({
-      mutationFn: ({ id, reviewsEnabled }) =>
-        productsApi.setReviewsEnabled(id, reviewsEnabled),
       onSuccess: () => invalidate(keys),
     }),
     bulkDelete: useMutation({

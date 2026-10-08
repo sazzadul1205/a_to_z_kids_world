@@ -98,8 +98,6 @@ export const productsApi = {
   remove: (id) => api.delete(`/products/${id}`),
   // Staff-only toggles and bulk actions.
   toggleActive: (id) => api.patch(`/products/${id}/toggle-active`),
-  setReviewsEnabled: (id, reviewsEnabled) =>
-    api.patch(`/products/${id}/reviews`, { reviewsEnabled }),
   bulkDelete: (ids) => api.post("/products/bulk/delete", { ids }),
   bulkSetFlag: (ids, flag, value) =>
     api.post("/products/bulk/flag", { ids, flag, value }),
@@ -128,6 +126,15 @@ export const usersApi = {
   create: (data) => api.post("/users", data),
   update: (id, data) => api.put(`/users/${id}`, data),
   remove: (id) => api.delete(`/users/${id}`),
+};
+
+// Store-wide settings. The read is public (the storefront
+// needs it to decide whether the review section renders);
+// only the write is staff-only, which the API enforces.
+export const settingsApi = {
+  get: (signal) => api.get("/settings", { signal }),
+  updateReviews: (reviewsEnabled) =>
+    api.patch("/settings/reviews", { reviewsEnabled }),
 };
 
 export const uploadsApi = {

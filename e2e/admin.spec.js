@@ -144,8 +144,8 @@ test.describe("catalogue administration", () => {
     const afterEdit = await apiGet("/products");
     expect(afterEdit.body.find((p) => p.name === `${name} edited`)).toMatchObject({ stock: 9 });
 
-    // Delete. The panel confirms with window.confirm; see deleteAdminProduct for
-    // why this retries and what it verifies.
+    // Delete. The panel confirms through a SweetAlert2 popup; see
+    // deleteAdminProduct for why this retries and what it verifies.
     await deleteAdminProduct(page, `${name} edited`, apiGet);
   });
 

@@ -30,6 +30,11 @@ export function mapProduct(raw, lookup) {
     image: resolveImageUrl(raw.image),
     // Kept so admin forms can write the stored path back untouched.
     rawImage: raw.image ?? "",
+    // The admin list reads these to show a product's hidden
+    // state and the review configuration; dropping them here
+    // made every row look identical regardless of its flags.
+    isActive: raw.isActive !== false,
+    reviewsEnabled: raw.reviewsEnabled !== false,
     age: raw.details?.age ?? "",
     includes: raw.details?.includes ?? "",
     createdAt: raw.createdAt,

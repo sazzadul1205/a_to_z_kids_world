@@ -4,6 +4,8 @@ import { useCatalog } from "../../context/catalog/useCatalog";
 import { useCategoryMutations } from "../../hooks/useAdminQueries";
 import { iconForCategoryName } from "../../lib/presentation";
 import { confirmDialog } from "../../lib/swal";
+import Pagination from "../../Components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
 import {
   AdminEmpty,
   AdminError,
@@ -26,6 +28,8 @@ const CategoriesAdmin = () => {
   const [fieldErrors, setFieldErrors] = useState(null);
 
   const busy = create.isPending || update.isPending || remove.isPending;
+  const { page, setPage, pageSize, total, totalPages, window: visibleCategories } =
+    usePagination(categories);
 
   const productCountByCategory = new Map();
   for (const product of products) {
@@ -168,7 +172,7 @@ const CategoriesAdmin = () => {
           {categories.length === 0 ? (
             <AdminEmpty title="No categories yet" message="Create the first one above." />
           ) : (
-            categories.map((category) => {
+            visibleCategories.map((category) => {
               const Icon = iconForCategoryName(category.name);
               const inUse = productCountByCategory.get(String(category._id)) || 0;
               return (
@@ -222,6 +226,15 @@ const CategoriesAdmin = () => {
             })
           )}
         </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          className="mt-4"
+        />
       </section>
     </div>
   );

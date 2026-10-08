@@ -169,49 +169,56 @@ export async function waitForGrid(page) {
 
 // Deletes an admin product row and waits for it to disappear from the API.
 //
-// Two things make a single click unreliable here. The list re-renders whenever a
-// mutation invalidates it, which can swap the button out from under the click so
-// that window.confirm never runs; and confirming needs the dialog answered
-// inside the handler, because the click cannot settle until it is.
-//
-// The whole attempt is retried, not just the click: a confirmed click whose
-// DELETE never lands is exactly as recoverable as one that never confirmed, and
-// treating only the first case as fatal would make this flake.
+// The row's delete button opens a SweetAlert2 popup rather than a native
+// dialog, so the popup's own confirm button answers it. Two things make a
+// single attempt unreliable. The list re-renders whenever a mutation
+// invalidates it, which can swap the button out from under the click so
+// that the popup never opens; and a confirmed popup whose DELETE never
+// lands (a 429, say) leaves the row in place. The whole attempt is
+// retried, not just the click, because both cases are recoverable.
 export async function deleteAdminProduct(page, name, apiGet) {
   const stillThere = async () => {
     const list = await apiGet("/products");
     return list.body.some((p) => p.name === name);
   };
 
+  // The delete flow confirms through a "Yes, delete" button inside the
+  // SweetAlert2 popup.
+  const popupConfirm = () =>
+    page
+      .locator(".swal2-popup .swal2-confirm")
+      .filter({ hasText: "Yes, delete" });
+
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await page.waitForLoadState("networkidle");
 
-    let confirmed = false;
-    const answerDialog = (dialog) => {
-      confirmed = true;
-      dialog.accept();
-    };
-    page.once("dialog", answerDialog);
+    // An earlier attempt may have left its popup open; Escape closes it
+    // so it cannot cover the row's own delete button.
+    if ((await popupConfirm().count()) > 0) {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(200);
+    }
 
     try {
       await adminProductRow(page, name)
         .getByRole("button", { name: /^delete$/i })
         .click();
-    } finally {
-      page.off("dialog", answerDialog);
+      // The popup renders on click; answer it once it appears.
+      const confirm = popupConfirm();
+      await confirm.first().waitFor({ state: "visible", timeout: 5000 });
+      await confirm.first().click();
+    } catch {
+      // The click never landed or no popup opened; retry the attempt.
+      continue;
     }
 
-    if (!confirmed) continue;
-
-    // A delete refused with 429 leaves the row in place, so the check tolerates a
-    // few consecutive failures before giving up on this attempt.
     try {
       await expect
         .poll(async () => !(await stillThere()), { timeout: 8000 })
         .toBe(true);
       return;
     } catch {
-      // Retry the whole attempt.
+      // The popup was confirmed but the row is still there; retry.
     }
   }
 

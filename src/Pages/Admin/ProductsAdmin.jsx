@@ -1,11 +1,13 @@
-import { useRef, useState } from "react";
-import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, UploadCloud, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { resolveImageUrl, uploadsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { useProductMutations } from "../../hooks/useAdminQueries";
 import { formatBDT } from "../../lib/currency";
 import { confirmDialog, toastError, toastSuccess } from "../../lib/swal";
+import Pagination from "../../Components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
 import {
   AdminEmpty,
   AdminError,
@@ -16,6 +18,15 @@ import {
   labelClass,
   primaryButtonClass,
 } from "./admin-ui";
+
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const emptyDraft = {
   name: "",
@@ -47,6 +58,7 @@ const ProductsAdmin = () => {
   const [formError, setFormError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState(null);
   const [selected, setSelected] = useState(new Set());
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   const {
@@ -54,7 +66,6 @@ const ProductsAdmin = () => {
     update,
     remove,
     toggleActive,
-    setReviewsEnabled,
     bulkDelete,
     bulkSetFlag,
   } = useProductMutations();
@@ -68,7 +79,6 @@ const ProductsAdmin = () => {
     update.isPending ||
     remove.isPending ||
     toggleActive.isPending ||
-    setReviewsEnabled.isPending ||
     bulkDelete.isPending ||
     bulkSetFlag.isPending;
   const uploading = upload.isPending;
@@ -90,6 +100,16 @@ const ProductsAdmin = () => {
     setSelected((prev) =>
       prev.size === products.length ? new Set() : new Set(products.map((p) => p._id)),
     );
+
+  // Newest first, like the orders screen: a freshly created product
+  // lands on page 1 instead of the end of the catalogue.
+  const orderedProducts = useMemo(
+    () =>
+      [...products].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      ),
+    [products],
+  );
 
   const closeForm = () => {
     setIsFormOpen(false);
@@ -118,18 +138,42 @@ const ProductsAdmin = () => {
     setIsFormOpen(true);
   };
 
-  const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  const { page, setPage, pageSize, total, totalPages, window: visibleProducts } =
+    usePagination(orderedProducts);
+
+  // Shared by the file picker and the drag-and-drop zone, so both
+  // paths get the same validation and error reporting.
+  const uploadFile = async (file) => {
     if (!file) return;
 
     setFormError(null);
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setFormError("Only JPEG, PNG, WebP, GIF or AVIF images can be uploaded.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setFormError("Images must be 5 MB or smaller.");
+      return;
+    }
+
     try {
       const result = await upload.mutateAsync(file);
       setDraft((current) => ({ ...current, image: result.url }));
     } catch (err) {
       setFormError(`Upload failed: ${err.message}`);
     }
+  };
+
+  const handleUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    uploadFile(file);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    uploadFile(event.dataTransfer.files?.[0]);
   };
 
   const handleSubmit = async (event) => {
@@ -184,23 +228,6 @@ const ProductsAdmin = () => {
         product.isActive === false
           ? `${product.name} is now live in the shop.`
           : `${product.name} is hidden from the shop.`,
-      );
-    } catch (err) {
-      toastError(err.message);
-    }
-  };
-
-  const handleToggleReviews = async (product) => {
-    const next = product.reviewsEnabled !== false ? false : true;
-    try {
-      await setReviewsEnabled.mutateAsync({
-        id: product._id,
-        reviewsEnabled: next,
-      });
-      toastSuccess(
-        next
-          ? `Reviews are now open for ${product.name}.`
-          : `Reviews are disabled for ${product.name}.`,
       );
     } catch (err) {
       toastError(err.message);
@@ -337,27 +364,40 @@ const ProductsAdmin = () => {
           {products.length === 0 ? (
             <AdminEmpty title="No products yet" message="Add the first discovery to the shop." />
           ) : (
-            products.map((product) => (
+            visibleProducts.map((product) => (
               <div
                 key={product._id}
                 className={`flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3 ${
-                  selected.has(product._id) ? "ring-2 ring-primary-200" : ""
-                }`}
+                  product.isActive === false ? "opacity-60" : ""
+                } ${selected.has(product._id) ? "ring-2 ring-primary-200" : ""}`}
               >
                 <label className="flex min-w-0 cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
                     checked={selected.has(product._id)}
                     onChange={() => toggleSelect(product._id)}
+                    // The wrapping label carries "in stock" and other
+                    // row text, which would otherwise become the
+                    // checkbox's accessible name.
+                    aria-label={`Select ${product.name}`}
                     className="h-4 w-4 rounded border-border"
                   />
                   <img
                     src={product.image}
                     alt=""
-                    className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                    className={`h-12 w-12 shrink-0 rounded-lg object-cover ${
+                      product.isActive === false ? "grayscale" : ""
+                    }`}
                   />
                   <div className="min-w-0">
-                    <p className="truncate font-bold text-text">{product.name}</p>
+                    <p className="truncate font-bold text-text">
+                      {product.name}
+                      {product.isActive === false && (
+                        <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 align-middle text-xs font-bold uppercase tracking-wide text-primary-900">
+                          Hidden
+                        </span>
+                      )}
+                    </p>
                     <p className="truncate text-xs text-text-muted">
                       {product.category || "Uncategorised"} · {formatBDT(product.price)} ·{" "}
                       <span className={product.stock <= 0 ? "font-bold text-primary-700" : ""}>
@@ -369,12 +409,6 @@ const ProductsAdmin = () => {
                         <span className="text-primary-700">Hidden from shop</span>
                       ) : (
                         <span className="text-secondary-1000">Live in shop</span>
-                      )}{" "}
-                      ·{" "}
-                      {product.reviewsEnabled === false ? (
-                        <span className="text-primary-700">Reviews disabled</span>
-                      ) : (
-                        <span className="text-secondary-1000">Reviews on</span>
                       )}
                     </p>
                   </div>
@@ -397,19 +431,6 @@ const ProductsAdmin = () => {
                     )}
                     {product.isActive === false ? "Activate" : "Hide"}
                   </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleToggleReviews(product)}
-                    title={
-                      product.reviewsEnabled === false
-                        ? "Enable reviews"
-                        : "Disable reviews"
-                    }
-                    className={ghostButtonClass}
-                  >
-                    {product.reviewsEnabled === false ? "Reviews on" : "Reviews off"}
-                  </button>
                   <button type="button" onClick={() => openEdit(product)} className={ghostButtonClass}>
                     <Pencil className="h-4 w-4" /> Edit
                   </button>
@@ -426,6 +447,15 @@ const ProductsAdmin = () => {
             ))
           )}
         </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          className="mt-4"
+        />
       </section>
 
       {isFormOpen && (
@@ -547,9 +577,21 @@ const ProductsAdmin = () => {
                 />
               </label>
 
-              <label className="block sm:col-span-2">
+              <div className="block sm:col-span-2">
                 <span className={labelClass}>Image</span>
-                <div className="flex flex-wrap items-center gap-3">
+                <div
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                  className={`flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3 transition ${
+                    isDragging
+                      ? "border-primary-400 bg-primary-50"
+                      : "border-border bg-surface-soft"
+                  }`}
+                >
                   <input
                     value={draft.image}
                     onChange={(e) => setDraft({ ...draft, image: e.target.value })}
@@ -577,10 +619,12 @@ const ProductsAdmin = () => {
                     {uploading ? "Uploading..." : "Upload"}
                   </button>
                 </div>
-                <span className="mt-1 block text-xs text-text-muted">
-                  JPEG, PNG, WebP, GIF or AVIF up to 5 MB. Uploads are converted to WebP.
+                <span className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
+                  <UploadCloud className="h-3.5 w-3.5 shrink-0" />
+                  Drag an image onto the box above, or use the picker. JPEG, PNG,
+                  WebP, GIF or AVIF up to 5 MB. Uploads are converted to WebP.
                 </span>
-              </label>
+              </div>
 
               {draft.image && (
                 <img

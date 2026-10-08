@@ -4,6 +4,8 @@ import { useCatalog } from "../../context/catalog/useCatalog";
 import { formatBDT } from "../../lib/currency";
 import { useOrderMutations, useOrdersQuery } from "../../hooks/useAdminQueries";
 import { confirmDialog } from "../../lib/swal";
+import Pagination from "../../Components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
 import {
   AdminEmpty,
   AdminError,
@@ -54,10 +56,12 @@ const OrdersAdmin = () => {
     });
   };
 
-  if (status === "pending") return <AdminLoader label="Loading orders..." />;
-
   const rows = data ?? [];
   const sorted = [...rows].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const { page, setPage, pageSize, total, totalPages, window: visibleOrders } =
+    usePagination(sorted);
+
+  if (status === "pending") return <AdminLoader label="Loading orders..." />;
 
   return (
     <div className="space-y-8">
@@ -86,7 +90,7 @@ const OrdersAdmin = () => {
           {sorted.length === 0 ? (
             <AdminEmpty title="No orders yet" message="Confirmed orders will show up here." />
           ) : (
-            sorted.map((order) => {
+            visibleOrders.map((order) => {
               const product = productById.get(String(order.productId));
               return (
                 <div
@@ -142,6 +146,15 @@ const OrdersAdmin = () => {
             })
           )}
         </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          className="mt-4"
+        />
       </section>
     </div>
   );

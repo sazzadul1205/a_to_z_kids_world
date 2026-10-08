@@ -37,7 +37,10 @@ const AdminLayout = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-soft text-text lg:flex-row">
-      <aside className="flex flex-col border-b border-border bg-surface px-4 py-5 lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
+      {/* The sidebar keeps the viewport's height on desktop instead of
+          stretching with the page, and stays pinned while the main
+          column scrolls. */}
+      <aside className="flex flex-col border-b border-border bg-surface px-4 py-5 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-fill text-ink-on-brand">
             <Sparkles className="h-5 w-5" />

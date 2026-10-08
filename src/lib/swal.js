@@ -40,12 +40,16 @@ export async function confirmDialog({
     icon,
     iconColor: danger ? p.confirmButtonColor : "#2686cd",
     showConfirmButton: true,
-    showCancel: true,
+    // SweetAlert2's own option names; the aliases it warns
+    // about ("showCancel", "confirmText", "cancelText") are
+    // silently ignored, which left the popup with an "OK"
+    // button and no way to cancel.
+    showCancelButton: true,
     confirmButtonColor: p.confirmButtonColor,
     focusCancel: true,
     reverseButtons: true,
-    confirmText,
-    cancelText,
+    confirmButtonText: confirmText,
+    cancelButtonText: cancelText,
     background: p.background,
     color: p.color,
     customClass: {

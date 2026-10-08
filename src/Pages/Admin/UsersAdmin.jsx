@@ -3,6 +3,8 @@ import { KeyRound, Loader2, Plus, Save, ShieldCheck, Trash2, UserRound } from "l
 import { useUserMutations, useUsersQuery } from "../../hooks/useAdminQueries";
 import { useAuth } from "../../context/auth/useAuth";
 import { confirmDialog } from "../../lib/swal";
+import Pagination from "../../Components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
 import {
   AdminEmpty,
   AdminError,
@@ -31,6 +33,10 @@ const UsersAdmin = () => {
   const { status, error, data, refetch } = useUsersQuery();
   const { create, update, remove } = useUserMutations();
   const users = data ?? [];
+  const { page, setPage, pageSize, total, totalPages, window: visibleUsers } =
+    usePagination(users);
+
+  const isSelf = (user) => String(user._id) === String(currentUser?._id);
 
   const resetMessages = () => {
     setActionError(null);
@@ -53,7 +59,15 @@ const UsersAdmin = () => {
     }
   };
 
+  // An admin can never demote or delete their own account — doing so
+  // would lock the session out mid-flight. The API refuses it too;
+  // these guards keep the option out of the UI entirely.
   const handleToggleRole = (user) => {
+    if (isSelf(user)) {
+      setActionError(new Error("You cannot change your own role."));
+      return;
+    }
+
     const nextRole = user.role === "Admin" ? "Customer" : "Admin";
     const message =
       nextRole === "Customer"
@@ -69,6 +83,11 @@ const UsersAdmin = () => {
   };
 
   const handleDelete = (user) => {
+    if (isSelf(user)) {
+      setActionError(new Error("You cannot delete your own account."));
+      return;
+    }
+
     return confirmDialog({
       title: `Delete ${user.name}?`,
       text: "This cannot be undone.",
@@ -262,8 +281,8 @@ const UsersAdmin = () => {
               message="Create a staff account to get into the admin area."
             />
           ) : (
-            users.map((user) => {
-              const isSelf = String(user._id) === String(currentUser?._id);
+            visibleUsers.map((user) => {
+              const self = isSelf(user);
               const isOpen = passwordFor === user._id;
 
               return (
@@ -272,7 +291,7 @@ const UsersAdmin = () => {
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-2 font-bold text-text">
                         {user.name}
-                        {isSelf && (
+                        {self && (
                           <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-bold text-primary-900">
                             You
                           </span>
@@ -296,22 +315,30 @@ const UsersAdmin = () => {
                         <KeyRound className="h-3.5 w-3.5" />
                         {isOpen ? "Close" : "Password"}
                       </button>
-                      <button
-                        type="button"
-                        disabled={busyId === user._id}
-                        onClick={() => handleToggleRole(user)}
-                        className={ghostButtonClass}
-                      >
-                        {user.role === "Admin" ? "Demote" : "Promote"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId === user._id}
-                        onClick={() => handleDelete(user)}
-                        className={dangerButtonClass}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {self ? (
+                        <span className="text-xs font-semibold text-text-muted">
+                          Cannot demote or delete your own account
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busyId === user._id}
+                            onClick={() => handleToggleRole(user)}
+                            className={ghostButtonClass}
+                          >
+                            {user.role === "Admin" ? "Demote" : "Promote"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busyId === user._id}
+                            onClick={() => handleDelete(user)}
+                            className={dangerButtonClass}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -350,7 +377,7 @@ const UsersAdmin = () => {
                       </label>
                       <div className="sm:col-span-2">
                         <p className="mb-3 text-xs text-text-muted">
-                          {isSelf
+                          {self
                             ? "Changing your own password signs you out of every device."
                             : "The account keeps working, but existing sessions are signed out."}
                         </p>
@@ -374,11 +401,21 @@ const UsersAdmin = () => {
             })
           )}
         </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          className="mt-4"
+        />
       </section>
 
       <p className="text-xs text-text-muted">
-        The last remaining Admin cannot be demoted or deleted — the API refuses it, so the
-        staff area cannot be locked out by accident.
+        Your own account cannot be demoted or deleted from here. The last
+        remaining Admin cannot be demoted or deleted either — the API refuses
+        it, so the staff area cannot be locked out by accident.
       </p>
     </div>
   );

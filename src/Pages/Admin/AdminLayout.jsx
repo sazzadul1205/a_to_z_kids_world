@@ -4,12 +4,16 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  Moon,
   Package,
   Sparkles,
+  Sun,
   Tags,
   UserCog,
 } from "lucide-react";
 import { useAuth } from "../../context/auth/useAuth";
+import { useTheme } from "../../context/theme/useTheme";
+import { applyThemeToSwal } from "../../lib/swal";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -22,11 +26,20 @@ const NAV_ITEMS = [
 
 const AdminLayout = () => {
   const { user, signOut } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  // Keep SweetAlert2 in sync with the current theme.
+  applyThemeToSwal(isDark);
 
   const handleSignOut = () => {
     signOut();
     navigate("/admin/login", { replace: true });
+  };
+
+  const toggle = () => {
+    toggleTheme();
+    applyThemeToSwal(!isDark);
   };
 
   return (
@@ -69,13 +82,25 @@ const AdminLayout = () => {
             <p className="truncate text-sm font-bold text-text">{user?.name}</p>
             <p className="truncate text-xs text-text-muted">{user?.email}</p>
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-text transition hover:border-primary-300 hover:bg-primary-50"
-          >
-            <LogOut className="h-4 w-4" /> Sign out
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              title={isDark ? "Light mode" : "Dark mode"}
+              className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-bold text-text transition hover:border-primary-300 hover:bg-primary-50"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {isDark ? "Light" : "Dark"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-bold text-text transition hover:border-primary-300 hover:bg-primary-50"
+            >
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </div>
         </div>
       </aside>
 

@@ -5,6 +5,7 @@ import { resolveImageUrl, uploadsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { useProductMutations } from "../../hooks/useAdminQueries";
 import { formatBDT } from "../../lib/currency";
+import { confirmDialog } from "../../lib/swal";
 import {
   AdminEmpty,
   AdminError,
@@ -131,7 +132,13 @@ const ProductsAdmin = () => {
   };
 
   const handleDelete = async (product) => {
-    if (!window.confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
+    const confirmed = await confirmDialog({
+      title: `Delete "${product.name}"?`,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    });
+    if (!confirmed) return;
 
     try {
       await remove.mutateAsync(product._id);

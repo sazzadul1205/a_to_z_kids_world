@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { formatBDT } from "../../lib/currency";
 import { useOrderMutations, useOrdersQuery } from "../../hooks/useAdminQueries";
+import { confirmDialog } from "../../lib/swal";
 import {
   AdminEmpty,
   AdminError,
@@ -42,8 +43,15 @@ const OrdersAdmin = () => {
   };
 
   const handleDelete = (order) => {
-    if (!window.confirm("Delete this order? Stock will be returned to the product.")) return;
-    return runAction(order._id, () => remove.mutateAsync(order._id));
+    return confirmDialog({
+      title: "Delete this order?",
+      text: "Stock will be returned to the product.",
+      confirmText: "Yes, delete",
+      danger: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      return runAction(order._id, () => remove.mutateAsync(order._id));
+    });
   };
 
   if (status === "pending") return <AdminLoader label="Loading orders..." />;

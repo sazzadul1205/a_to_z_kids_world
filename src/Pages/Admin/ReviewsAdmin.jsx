@@ -3,6 +3,7 @@ import { Loader2, Save, Trash2 } from "lucide-react";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { starsForRating } from "../../lib/presentation";
 import { useReviewMutations, useReviewsQuery } from "../../hooks/useAdminQueries";
+import { confirmDialog } from "../../lib/swal";
 import {
   AdminEmpty,
   AdminError,
@@ -39,7 +40,13 @@ const ReviewsAdmin = () => {
   };
 
   const handleDelete = async (review) => {
-    if (!window.confirm(`Delete the review by ${review.name}?`)) return;
+    const confirmed = await confirmDialog({
+      title: `Delete the review by ${review.name}?`,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    });
+    if (!confirmed) return;
     setActionError(null);
     try {
       await remove.mutateAsync(review._id);

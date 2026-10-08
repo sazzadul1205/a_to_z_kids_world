@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyRound, Loader2, Plus, Save, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { useUserMutations, useUsersQuery } from "../../hooks/useAdminQueries";
 import { useAuth } from "../../context/auth/useAuth";
+import { confirmDialog } from "../../lib/swal";
 import {
   AdminEmpty,
   AdminError,
@@ -58,18 +59,28 @@ const UsersAdmin = () => {
       nextRole === "Customer"
         ? `Demote ${user.name} to Customer? They will lose access to the staff area.`
         : `Promote ${user.name} to Admin? They will get full staff access.`;
-    if (!window.confirm(message)) return;
 
-    return run(user._id, () => update.mutateAsync({ id: user._id, role: nextRole }));
+    return confirmDialog({ title: message, text: "This can be reversed later.", icon: "question" }).then(
+      (confirmed) => {
+        if (!confirmed) return;
+        return run(user._id, () => update.mutateAsync({ id: user._id, role: nextRole }));
+      },
+    );
   };
 
   const handleDelete = (user) => {
-    if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) return;
-
-    return run(user._id, () => remove.mutateAsync(user._id), {
-      onDone: () => {
-        if (passwordFor === user._id) setPasswordFor(null);
-      },
+    return confirmDialog({
+      title: `Delete ${user.name}?`,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      return run(user._id, () => remove.mutateAsync(user._id), {
+        onDone: () => {
+          if (passwordFor === user._id) setPasswordFor(null);
+        },
+      });
     });
   };
 

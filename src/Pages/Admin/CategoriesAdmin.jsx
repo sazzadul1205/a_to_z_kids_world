@@ -3,6 +3,7 @@ import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useCatalog } from "../../context/catalog/useCatalog";
 import { useCategoryMutations } from "../../hooks/useAdminQueries";
 import { iconForCategoryName } from "../../lib/presentation";
+import { confirmDialog } from "../../lib/swal";
 import {
   AdminEmpty,
   AdminError,
@@ -69,7 +70,13 @@ const CategoriesAdmin = () => {
         ? ` "${category.name}" is still used by ${inUse} product${inUse === 1 ? "" : "s"}. They will keep a dangling category reference. Continue?`
         : ` Delete "${category.name}"?`;
 
-    if (!window.confirm(warning)) return;
+    const confirmed = await confirmDialog({
+      title: warning,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    });
+    if (!confirmed) return;
 
     setFormError(null);
     try {

@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/auth/useAuth";
 import { useTheme } from "../../context/theme/useTheme";
-import { applyThemeToSwal } from "../../lib/swal";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -29,18 +28,12 @@ const AdminLayout = () => {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  // Keep SweetAlert2 in sync with the current theme.
-  applyThemeToSwal(isDark);
-
   const handleSignOut = () => {
     signOut();
     navigate("/admin/login", { replace: true });
   };
 
-  const toggle = () => {
-    toggleTheme();
-    applyThemeToSwal(!isDark);
-  };
+  const toggle = () => toggleTheme();
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-soft text-text lg:flex-row">

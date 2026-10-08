@@ -20,26 +20,9 @@ const palette = {
   },
 };
 
-// v11 exposes defaults on the imported object, not on a prototype. Setting
-// them here makes every popup that opens afterwards pick up the theme.
-export function applyThemeToSwal(isDark) {
-  const p = isDark ? palette.dark : palette.light;
-  Object.assign(SweetAlert.defaults, {
-    background: p.background,
-    color: p.color,
-    confirmButtonColor: p.confirmButtonColor,
-    focusColor: p.focusColor,
-    customClass: {
-      popup: "rounded-2xl shadow-2xl",
-      title: "font-bold",
-      htmlContainer: "text-text-muted",
-      confirmButton: "rounded-xl px-5 py-2.5 font-bold",
-      actions: "gap-2",
-    },
-  });
-}
-
-// Confirm dialog — returns true on confirm, false on cancel.
+// Confirm dialog — returns true on confirm, false on cancel. Every popup gets
+// its theme options explicitly, so no global SweetAlert2 defaults need to be
+// set (v11 does not export them).
 export async function confirmDialog({
   title,
   text,

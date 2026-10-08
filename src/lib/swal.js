@@ -1,6 +1,5 @@
 import SweetAlert from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.css";
-import { useTheme } from "../context/theme/useTheme";
 
 // SweetAlert2 wrapper that follows the app's dark/light theme and keeps the
 // brand palette. All admin confirm/error flows go through here instead of
@@ -21,25 +20,23 @@ const palette = {
   },
 };
 
+// v11 exposes defaults on the imported object, not on a prototype. Setting
+// them here makes every popup that opens afterwards pick up the theme.
 export function applyThemeToSwal(isDark) {
   const p = isDark ? palette.dark : palette.light;
-  SweetAlert.prototype.options.customClass = {
-    popup: "rounded-2xl shadow-2xl",
-    title: "text-text",
-    htmlContainer: "text-text-muted",
-    confirmButton: "rounded-xl px-5 py-2.5 font-bold",
-    actions: "gap-2",
-  };
-  SweetAlert.prototype.options.background = p.background;
-  SweetAlert.prototype.options.color = p.color;
-  SweetAlert.prototype.options.confirmButtonColor = p.confirmButtonColor;
-  SweetAlert.prototype.options.focusColor = p.focusColor;
-}
-
-// Hook: bind the current theme to every SweetAlert2 popup.
-export function useSweetAlert() {
-  const { isDark } = useTheme();
-  return { isDark, palette: isDark ? palette.dark : palette.light };
+  Object.assign(SweetAlert.defaults, {
+    background: p.background,
+    color: p.color,
+    confirmButtonColor: p.confirmButtonColor,
+    focusColor: p.focusColor,
+    customClass: {
+      popup: "rounded-2xl shadow-2xl",
+      title: "font-bold",
+      htmlContainer: "text-text-muted",
+      confirmButton: "rounded-xl px-5 py-2.5 font-bold",
+      actions: "gap-2",
+    },
+  });
 }
 
 // Confirm dialog — returns true on confirm, false on cancel.
@@ -51,11 +48,10 @@ export async function confirmDialog({
   icon = "warning",
   danger = false,
 }) {
-  const isDark =
-    document.documentElement.classList.contains("dark");
+  const isDark = document.documentElement.classList.contains("dark");
   const p = isDark ? palette.dark : palette.light;
 
-const result = await SweetAlert.fire({
+  const result = await SweetAlert.fire({
     title,
     text,
     icon,
@@ -79,6 +75,24 @@ const result = await SweetAlert.fire({
   });
 
   return result.isConfirmed;
+}
+
+function currentBackground() {
+  return document.documentElement.classList.contains("dark")
+    ? palette.dark.background
+    : palette.light.background;
+}
+
+function currentColor() {
+  return document.documentElement.classList.contains("dark")
+    ? palette.dark.color
+    : palette.light.color;
+}
+
+function currentConfirmColor() {
+  return document.documentElement.classList.contains("dark")
+    ? palette.dark.confirmButtonColor
+    : palette.light.confirmButtonColor;
 }
 
 // Success / error / info popups.
@@ -113,22 +127,4 @@ export function toastInfo(message) {
     background: currentBackground(),
     color: currentColor(),
   });
-}
-
-function currentBackground() {
-  return document.documentElement.classList.contains("dark")
-    ? palette.dark.background
-    : palette.light.background;
-}
-
-function currentColor() {
-  return document.documentElement.classList.contains("dark")
-    ? palette.dark.color
-    : palette.light.color;
-}
-
-function currentConfirmColor() {
-  return document.documentElement.classList.contains("dark")
-    ? palette.dark.confirmButtonColor
-    : palette.light.confirmButtonColor;
 }

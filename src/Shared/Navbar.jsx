@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import {
   Search,
   Menu,
@@ -81,13 +81,22 @@ const Navbar = ({ onCartClick, cartCount }) => {
 
           <div className="hidden items-center gap-7 md:flex">
             {navLinks.map((link) => (
-              <Link
+              <NavLink
                 key={link.name}
                 to={link.href}
-                className="font-semibold text-text transition-colors duration-200 hover:text-primary-600"
+                // Home is the index route; without `end` it would
+                // stay highlighted on every page below it.
+                end={link.href === "/"}
+                className={({ isActive }) =>
+                  `font-semibold transition-colors duration-200 ${
+                    isActive
+                      ? "text-primary-600"
+                      : "text-text hover:text-primary-600"
+                  }`
+                }
               >
                 {link.name}
-              </Link>
+              </NavLink>
             ))}
           </div>
 
@@ -172,14 +181,21 @@ const Navbar = ({ onCartClick, cartCount }) => {
 
           <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
-              <Link
+              <NavLink
                 key={link.name}
                 to={link.href}
-                className="rounded-xl px-3 py-2 font-semibold text-text transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600"
+                end={link.href === "/"}
                 onClick={() => setIsMenuOpen(false)}
+                className={({ isActive }) =>
+                  `rounded-xl px-3 py-2 font-semibold transition-colors duration-200 ${
+                    isActive
+                      ? "bg-primary-50 text-primary-700"
+                      : "text-text hover:bg-primary-50 hover:text-primary-600"
+                  }`
+                }
               >
                 {link.name}
-              </Link>
+              </NavLink>
             ))}
           </div>
         </div>

@@ -14,10 +14,12 @@ npm run lint
 npm run preview
 ```
 
-The dev server proxies `/api` to `http://localhost:3000` and **strips the
-`/api` prefix**, because the API mounts its resources at the root
-(`/products`, `/uploads`, ...). Point it elsewhere with
-`VITE_API_PROXY_TARGET`.
+In development, the app uses `/api`; Vite proxies it to the target in
+`VITE_API_PROXY_TARGET` and strips the `/api` prefix, because the API mounts
+its resources at the root (`/products`, `/uploads`, ...). The committed
+`.env.development` selects `/api`, while the local, git-ignored `.env.local`
+can point the proxy at a live API. Production builds use the `VITE_API_BASE_URL`
+in `.env` directly.
 
 ## Environment
 
@@ -25,7 +27,7 @@ Copy `.env.example` to `.env`:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `VITE_API_BASE_URL` | `/api` | In development, Vite proxies this. For a production build set it to the API origin, e.g. `https://api.example.com`. |
+| `VITE_API_BASE_URL` | `/api` in development; configured API URL in `.env` for production builds | API base URL. Development uses the Vite `/api` proxy; production builds connect directly to the configured API URL. |
 | `VITE_WHATSAPP_NUMBER` | — | WhatsApp number for order and enquiry deep links, international format, no `+` or spaces. |
 
 Anything prefixed `VITE_` is inlined into the client bundle at build time and

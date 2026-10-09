@@ -22,9 +22,10 @@ export default async function globalSetup() {
     throw new Error(`429 from ${"/products"} on the very first request.\n${RATE_LIMIT_HINT}`);
   }
 
-  if (!Array.isArray(first.body) || first.body.length === 0) {
+  const products = Array.isArray(first.body) ? first.body : (first.body?.products || []);
+  if (!products.length) {
     throw new Error(
-      `GET /products returned ${first.status} with ${first.body?.length ?? "no"} products. ` +
+      `GET /products returned ${first.status} with ${products.length} products. ` +
         "Seed the database (npm run seed) before running the end-to-end suite.",
     );
   }

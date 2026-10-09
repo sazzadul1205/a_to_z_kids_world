@@ -6,16 +6,22 @@ import {
   MessageSquare,
   Moon,
   Package,
+  ShoppingCart,
   Sparkles,
   Sun,
   Tags,
+  Truck,
   UserCog,
+  Warehouse,
 } from "lucide-react";
 import { useAuth } from "../../context/auth/useAuth";
 import { useTheme } from "../../context/theme/useTheme";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/pos", label: "POS / Sales", icon: ShoppingCart },
+  { to: "/admin/purchase-orders", label: "Purchase Orders", icon: Truck },
+  { to: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/categories", label: "Categories", icon: Tags },
   { to: "/admin/reviews", label: "Reviews", icon: MessageSquare },

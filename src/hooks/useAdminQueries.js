@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   authApi,
   categoriesApi,
+  inventoryApi,
   ordersApi,
   productsApi,
+  purchaseOrdersApi,
   reviewsApi,
   settingsApi,
   usersApi,
@@ -146,6 +148,56 @@ export function useCategoryMutations() {
   };
 }
 
+export function useInventoryQuery(params) {
+  return useQuery({
+    queryKey: [...queryKeys.inventory, params],
+    queryFn: ({ signal }) => inventoryApi.list(params, signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useInventoryProductQuery(id) {
+  return useQuery({
+    queryKey: queryKeys.inventoryProduct(id),
+    queryFn: ({ signal }) => inventoryApi.getProduct(id, signal),
+    enabled: !!id,
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useInventoryMovementsQuery(params) {
+  return useQuery({
+    queryKey: [...queryKeys.inventoryMovements, params],
+    queryFn: ({ signal }) => inventoryApi.getMovements(params, signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useInventoryAlertsQuery() {
+  return useQuery({
+    queryKey: queryKeys.inventoryAlerts,
+    queryFn: ({ signal }) => inventoryApi.getAlerts(signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useInventoryMutations() {
+  const invalidate = useInvalidate();
+  const keys = [queryKeys.inventory, queryKeys.inventoryMovements, queryKeys.inventoryAlerts, queryKeys.catalog];
+
+  return {
+    adjustStock: useMutation({
+      mutationFn: ({ id, adjustment, reason, referenceId, referenceType }) =>
+        inventoryApi.adjustStock(id, adjustment, reason, referenceId, referenceType),
+      onSuccess: () => invalidate(keys),
+    }),
+    bulkAdjustStock: useMutation({
+      mutationFn: (adjustments) => inventoryApi.bulkAdjustStock(adjustments),
+      onSuccess: () => invalidate(keys),
+    }),
+  };
+}
+
 export function useProductMutations() {
   const invalidate = useInvalidate();
   const keys = [queryKeys.products, queryKeys.catalog];
@@ -176,6 +228,11 @@ export function useProductMutations() {
         productsApi.bulkSetFlag(ids, flag, value),
       onSuccess: () => invalidate(keys),
     }),
+    adjustStock: useMutation({
+      mutationFn: ({ id, adjustment, reason }) =>
+        productsApi.adjustStock(id, adjustment, reason),
+      onSuccess: () => invalidate(keys),
+    }),
   };
 }
 
@@ -200,6 +257,43 @@ export function useReviewMutations() {
     deleteByProduct: useMutation({
       mutationFn: (productId) => reviewsApi.deleteByProduct(productId),
       onSuccess: () => invalidate([queryKeys.reviews]),
+    }),
+  };
+}
+
+export function usePurchaseOrdersQuery(params) {
+  return useQuery({
+    queryKey: [...queryKeys.purchaseOrders, params],
+    queryFn: ({ signal }) => purchaseOrdersApi.list(params, signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function usePurchaseOrderQuery(id) {
+  return useQuery({
+    queryKey: queryKeys.purchaseOrder(id),
+    queryFn: ({ signal }) => purchaseOrdersApi.get(id, signal),
+    enabled: !!id,
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function usePurchaseOrderMutations() {
+  const invalidate = useInvalidate();
+  const keys = [queryKeys.purchaseOrders, queryKeys.inventory, queryKeys.inventoryMovements, queryKeys.catalog];
+
+  return {
+    create: useMutation({
+      mutationFn: (data) => purchaseOrdersApi.create(data),
+      onSuccess: () => invalidate(keys),
+    }),
+    updateStatus: useMutation({
+      mutationFn: ({ id, status }) => purchaseOrdersApi.updateStatus(id, status),
+      onSuccess: () => invalidate(keys),
+    }),
+    receive: useMutation({
+      mutationFn: ({ id, items }) => purchaseOrdersApi.receive(id, items),
+      onSuccess: () => invalidate(keys),
     }),
   };
 }

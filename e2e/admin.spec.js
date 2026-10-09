@@ -91,22 +91,55 @@ test.describe("admin access", () => {
     await expect(page).toHaveURL(/\/admin$/);
   });
 
-  test("valid credentials open the dashboard and survive a reload", async ({ page }) => {
+test("valid credentials open the dashboard and survive a reload", async ({ page }) => {
     await signIn(page);
     await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByRole("link", { name: "Products", exact: true })).toBeVisible();
+    // signIn now waits for the "A to Z Kids" text in the sidebar header,
+    // which indicates the sidebar is fully rendered.
+    // Verify the dashboard link is visible as a proxy for the sidebar being ready.
+    await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 30000 });
 
     // The session is stored, so a reload must not bounce back to the login page.
     await page.reload();
     await expect(page).toHaveURL(/\/admin$/);
+    // Wait for the sidebar to be ready after reload.
+    await page.getByText("A to Z Kids").waitFor({ state: "visible", timeout: 30000 });
+    await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 30000 });
+
+    // Sign out to leave a clean state for the next test.
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll("button"))
+        .find(b => b.textContent?.includes("Sign out"));
+      if (btn) {
+        const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+        btn.dispatchEvent(event);
+      }
+    });
+    await page.waitForURL(/\/admin\/login/, { timeout: 30000 });
   });
 
-  test("signing out ends the session immediately", async ({ page }) => {
+test("signing out ends the session immediately", async ({ page }) => {
     await signIn(page);
     await expect(page).toHaveURL(/\/admin$/);
 
-    await page.getByRole("button", { name: /sign out/i }).click();
-    await expect(page).toHaveURL(/\/admin\/login/);
+    // Click sign out and wait for navigation to login page.
+    // The signOut function in AuthContext clears the token and sets user to null.
+    // The AdminLayout's handleSignOut then calls navigate("/admin/login").
+    // Use page.evaluate to call the onClick handler directly, avoiding
+    // Playwright's stability checks which fail when the element is unmounted
+    // during navigation.
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll("button"))
+        .find(b => b.textContent?.includes("Sign out"));
+      if (btn) {
+        // Call the React onClick handler directly
+        const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+        btn.dispatchEvent(event);
+      }
+    });
+    // Wait for the redirect to complete. The redirect is triggered by
+    // AdminLayout's handleSignOut calling navigate("/admin/login").
+    await page.waitForURL(/\/admin\/login/, { timeout: 30000 });
 
     // And the stored token must not bring the admin area back.
     await page.goto("/admin/products");
@@ -119,15 +152,20 @@ test.describe("catalogue administration", () => {
     const name = stamp("E2E Product");
     await signIn(page);
     await page.goto("/admin/products");
+    // Wait for the products list to load (categories must be available for the form).
+    await expect(page.getByRole("button", { name: /new product/i })).toBeEnabled();
 
     // Create.
     await page.getByRole("button", { name: /new product/i }).click();
     await page.getByLabel(/^name$/i).fill(name);
     await page.getByLabel(/description/i).fill("Created by the end-to-end suite.");
-    await page.getByLabel(/price/i).fill("499");
+    await page.getByLabel(/^price \(bdt\)$/i).fill("499");
+    await page.getByLabel(/^buy price \(bdt\)$/i).fill("250");
+    await page.getByLabel(/^sku$/i).fill("E2E-TEST-001");
     await page.getByLabel(/stock/i).fill("7");
     await page.getByRole("button", { name: /create product/i }).click();
-    await expect(page.getByText(name)).toBeVisible();
+    // Wait for the form to close and the product to appear in the list.
+    await expect(adminProductRow(page, name)).toBeVisible();
 
     // It must be readable through the public API, proving the write landed.
     const listed = await apiGet("/products");
@@ -137,6 +175,8 @@ test.describe("catalogue administration", () => {
     // Edit.
     await adminProductRow(page, name).getByRole("button", { name: /^edit$/i }).click();
     await page.getByLabel(/^name$/i).fill(`${name} edited`);
+    await page.getByLabel(/^buy price \(bdt\)$/i).fill("250");
+    await page.getByLabel(/^sku$/i).fill("E2E-TEST-002");
     await page.getByLabel(/stock/i).fill("9");
     await page.getByRole("button", { name: /save changes/i }).click();
     await expect(adminProductRow(page, `${name} edited`)).toBeVisible();

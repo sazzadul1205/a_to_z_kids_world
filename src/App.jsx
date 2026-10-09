@@ -20,6 +20,8 @@ import ProductsAdmin from "./Pages/Admin/ProductsAdmin";
 import ReviewsAdmin from "./Pages/Admin/ReviewsAdmin";
 import OrdersAdmin from "./Pages/Admin/OrdersAdmin";
 import UsersAdmin from "./Pages/Admin/UsersAdmin";
+import PosAdmin from "./Pages/Admin/PosAdmin";
+import InventoryAdmin from "./Pages/Admin/InventoryAdmin";
 
 function App() {
   return (
@@ -42,6 +44,8 @@ function App() {
                 }
               >
                 <Route index element={<Dashboard />} />
+                <Route path="pos" element={<PosAdmin />} />
+                <Route path="inventory" element={<InventoryAdmin />} />
                 <Route path="products" element={<ProductsAdmin />} />
                 <Route path="categories" element={<CategoriesAdmin />} />
                 <Route path="reviews" element={<ReviewsAdmin />} />

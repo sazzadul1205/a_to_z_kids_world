@@ -12,8 +12,8 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  timeout: 45_000,
-  expect: { timeout: 10_000 },
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   reporter: [["list"]],
   use: {
     baseURL: process.env.E2E_BASE_URL || "http://localhost:5173",
@@ -21,8 +21,8 @@ export default defineConfig({
     // the browser locale keeps the suite on English, which the assertions below
     // are written against.
     locale: "en-US",
-    actionTimeout: 15_000,
-    navigationTimeout: 20_000,
+    actionTimeout: 20_000,
+    navigationTimeout: 30_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

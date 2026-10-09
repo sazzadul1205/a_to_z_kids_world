@@ -55,10 +55,10 @@ test.describe("storefront", () => {
     const search = shopSearch(page);
 
     // A multi-word query is the regression: typing a space used to drop it.
-    await search.fill("Magnetic Tiles");
-    await expect(search).toHaveValue("Magnetic Tiles");
-    await expect(page.locator("article")).toHaveCount(1);
-    await expect(page.getByRole("heading", { name: "Magnetic Tiles 60pc" })).toBeVisible();
+    await search.fill("Building blocks");
+    await expect(search).toHaveValue("Building blocks");
+    await expect(page.locator("article")).toHaveCount(12);
+    await expect(page.getByRole("heading", { name: "Building blocks Demo 1", exact: true })).toBeVisible();
   });
 
   test("search reflects partial input and clears back to the full list", async ({ page }) => {

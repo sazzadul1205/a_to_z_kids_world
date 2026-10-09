@@ -91,7 +91,18 @@ export const categoriesApi = {
 };
 
 export const productsApi = {
-  list: (params, signal) => api.get("/products", { params, signal }),
+  list: (params, signal) => {
+    console.log('productsApi.list called with params:', params);
+    const queryParams = { ...(params || {}), limit: params?.limit || 100 };
+    console.log('queryParams:', queryParams);
+    return api.get("/products", { params: queryParams, signal }).then((res) => {
+      console.log('productsApi.list response:', res);
+      if (res && typeof res === "object" && Array.isArray(res.products)) {
+        return res.products;
+      }
+      return res;
+    });
+  },
   get: (id, signal) => api.get(`/products/${id}`, { signal }),
   create: (data) => api.post("/products", data),
   update: (id, data) => api.put(`/products/${id}`, data),
@@ -101,6 +112,19 @@ export const productsApi = {
   bulkDelete: (ids) => api.post("/products/bulk/delete", { ids }),
   bulkSetFlag: (ids, flag, value) =>
     api.post("/products/bulk/flag", { ids, flag, value }),
+  adjustStock: (id, adjustment, reason) =>
+    api.post(`/products/${id}/adjust-stock`, { adjustment, reason }),
+};
+
+export const inventoryApi = {
+  list: (params, signal) => api.get("/inventory", { params, signal }),
+  getProduct: (id, signal) => api.get(`/inventory/${id}`, { signal }),
+  adjustStock: (id, adjustment, reason, referenceId, referenceType) =>
+    api.post(`/inventory/${id}/adjust`, { adjustment, reason, referenceId, referenceType }),
+  bulkAdjustStock: (adjustments) =>
+    api.post("/inventory/bulk-adjust", { adjustments }),
+  getMovements: (params, signal) => api.get("/inventory/movements", { params, signal }),
+  getAlerts: (signal) => api.get("/inventory/alerts", { signal }),
 };
 
 export const reviewsApi = {
@@ -135,6 +159,18 @@ export const settingsApi = {
   get: (signal) => api.get("/settings", { signal }),
   updateReviews: (reviewsEnabled) =>
     api.patch("/settings/reviews", { reviewsEnabled }),
+  updateInventory: (inventoryManagementEnabled) =>
+    api.patch("/settings/inventory", { inventoryManagementEnabled }),
+  updateOrderProcessing: (orderProcessingEnabled) =>
+    api.patch("/settings/order-processing", { orderProcessingEnabled }),
+};
+
+export const purchaseOrdersApi = {
+  list: (params, signal) => api.get("/purchase-orders", { params, signal }),
+  get: (id, signal) => api.get(`/purchase-orders/${id}`, { signal }),
+  create: (data) => api.post("/purchase-orders", data),
+  updateStatus: (id, status) => api.put(`/purchase-orders/${id}`, { status }),
+  receive: (id, items) => api.post(`/purchase-orders/${id}/receive`, { items }),
 };
 
 export const uploadsApi = {

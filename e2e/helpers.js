@@ -50,11 +50,25 @@ export async function apiAsAdmin(token, method, path, body) {
   return { status: res.status, body: json };
 }
 
-export const apiGet = (path) =>
-  fetch(`${API}${path}`).then(async (res) => ({
-    status: res.status,
-    body: await res.json().catch(() => null),
-  }));
+export const apiGet = async (path) => {
+  // For products, request all items to match the frontend's catalog query
+  const url = path.startsWith("/products") && !path.includes("?")
+    ? `${API}${path}?limit=100`
+    : `${API}${path}`;
+  const res = await fetch(url);
+  const json = await res.json().catch(() => null);
+  // Handle paginated responses: extract the products array for backward compatibility
+  if (path.startsWith("/products") && json && !Array.isArray(json)) {
+    return { status: res.status, body: json.products || [] };
+  }
+  if (path.startsWith("/categories") && json && !Array.isArray(json)) {
+    return { status: res.status, body: json.categories || json || [] };
+  }
+  if (path.startsWith("/reviews") && json && !Array.isArray(json)) {
+    return { status: res.status, body: json.reviews || json || [] };
+  }
+  return { status: res.status, body: json };
+};
 
 // --- Browser helpers --------------------------------------------------------
 
@@ -67,6 +81,9 @@ export async function signIn(page, credentials = ADMIN) {
   // straight afterwards, and an early goto interrupts the login and lands back
   // on the login page.
   await page.waitForURL((url) => !url.pathname.startsWith("/admin/login"));
+  // Wait for the admin sidebar to be fully rendered.
+  // Wait for the "A to Z Kids" text which is in the AdminLayout sidebar header.
+  await page.getByText("A to Z Kids").waitFor({ state: "visible", timeout: 30000 });
 }
 
 // The product details modal. Its actions must be addressed through this because

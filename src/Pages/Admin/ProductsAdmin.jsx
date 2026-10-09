@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, UploadCloud, X } from "lucide-react";
+import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, UploadCloud, X, PackagePlus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { resolveImageUrl, uploadsApi } from "../../lib/api";
 import { useCatalog } from "../../context/catalog/useCatalog";
@@ -32,22 +32,26 @@ const emptyDraft = {
   name: "",
   description: "",
   price: "",
+  buyPrice: "",
   stock: "",
   categoryId: "",
   image: "",
   age: "",
   includes: "",
+  sku: "",
 };
 
 const fromProduct = (product) => ({
   name: product.name,
   description: product.description || "",
   price: String(product.price),
+  buyPrice: String(product.buyPrice ?? ""),
   stock: String(product.stock),
   categoryId: String(product.categoryId || ""),
   image: product.rawImage || "",
   age: product.age || "",
   includes: product.includes || "",
+  sku: product.sku || "",
 });
 
 const ProductsAdmin = () => {
@@ -68,6 +72,7 @@ const ProductsAdmin = () => {
     toggleActive,
     bulkDelete,
     bulkSetFlag,
+    adjustStock,
   } = useProductMutations();
 
   // Uploading does not touch the catalogue, so it invalidates nothing; it only
@@ -80,8 +85,50 @@ const ProductsAdmin = () => {
     remove.isPending ||
     toggleActive.isPending ||
     bulkDelete.isPending ||
-    bulkSetFlag.isPending;
+    bulkSetFlag.isPending ||
+    adjustStock.isPending;
   const uploading = upload.isPending;
+
+  const [stockAdjustId, setStockAdjustId] = useState(null);
+  const [stockAdjustQty, setStockAdjustQty] = useState("");
+  const [stockAdjustReason, setStockAdjustReason] = useState("");
+  const [stockAdjustError, setStockAdjustError] = useState(null);
+
+  const openStockAdjust = (product) => {
+    setStockAdjustId(product._id);
+    setStockAdjustQty("");
+    setStockAdjustReason("");
+    setStockAdjustError(null);
+  };
+
+  const handleStockAdjust = async (event) => {
+    event.preventDefault();
+    setStockAdjustError(null);
+
+    const adjustment = Number(stockAdjustQty);
+    if (!Number.isInteger(adjustment)) {
+      setStockAdjustError("Adjustment must be a whole number");
+      return;
+    }
+    if (!stockAdjustReason.trim()) {
+      setStockAdjustError("Reason is required");
+      return;
+    }
+
+    try {
+      await adjustStock.mutateAsync({
+        id: stockAdjustId,
+        adjustment,
+        reason: stockAdjustReason.trim(),
+      });
+      setStockAdjustId(null);
+      setStockAdjustQty("");
+      setStockAdjustReason("");
+      toastSuccess("Stock adjusted successfully");
+    } catch (err) {
+      setStockAdjustError(err.message);
+    }
+  };
 
   // The backend requires a categoryId, so fall back to the first one rather
   // than waiting for the draft to be filled in.
@@ -184,7 +231,9 @@ const ProductsAdmin = () => {
     const payload = {
       name: draft.name.trim(),
       description: draft.description.trim(),
+      sku: draft.sku.trim().toUpperCase(),
       price: Number(draft.price),
+      buyPrice: Number(draft.buyPrice),
       stock: Number(draft.stock),
       categoryId: effectiveCategoryId,
       image: draft.image.trim(),
@@ -437,6 +486,14 @@ const ProductsAdmin = () => {
                   <button
                     type="button"
                     disabled={busy}
+                    onClick={() => openStockAdjust(product)}
+                    className={ghostButtonClass}
+                  >
+                    <PackagePlus className="h-4 w-4" /> Stock
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
                     onClick={() => handleDelete(product)}
                     className={dangerButtonClass}
                   >
@@ -517,6 +574,41 @@ const ProductsAdmin = () => {
                 {fieldErrors?.price && (
                   <span className="mt-1 block text-xs font-semibold text-primary-700">
                     {fieldErrors.price}
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Buy Price (BDT)</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={draft.buyPrice}
+                  onChange={(e) => setDraft({ ...draft, buyPrice: e.target.value })}
+                  className={fieldClass}
+                />
+                {fieldErrors?.buyPrice && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.buyPrice}
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>SKU</span>
+                <input
+                  required
+                  maxLength={50}
+                  value={draft.sku}
+                  onChange={(e) => setDraft({ ...draft, sku: e.target.value.toUpperCase() })}
+                  placeholder="TOY-001"
+                  className={fieldClass}
+                />
+                {fieldErrors?.sku && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.sku}
                   </span>
                 )}
               </label>
@@ -646,6 +738,76 @@ const ProductsAdmin = () => {
                   {editingId ? "Save changes" : "Create product"}
                 </button>
                 <button type="button" onClick={closeForm} className={ghostButtonClass}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {stockAdjustId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-surface p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-black text-text">Adjust Stock</h2>
+              <button
+                type="button"
+                onClick={() => setStockAdjustId(null)}
+                aria-label="Close"
+                className="rounded-full p-2 text-text-muted transition hover:bg-primary-50 hover:text-primary-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleStockAdjust} className="mt-5 space-y-4">
+              <p className="text-sm text-text-muted">
+                Adjust stock level for the selected product. Use positive numbers to add stock,
+                negative numbers to remove stock (e.g., damaged goods).
+              </p>
+
+              <label className="block">
+                <span className={labelClass}>Adjustment (units)</span>
+                <input
+                  type="number"
+                  required
+                  step="1"
+                  value={stockAdjustQty}
+                  onChange={(e) => setStockAdjustQty(e.target.value)}
+                  placeholder="+5 or -2"
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Reason</span>
+                <input
+                  required
+                  maxLength={200}
+                  value={stockAdjustReason}
+                  onChange={(e) => setStockAdjustReason(e.target.value)}
+                  placeholder="Stock take, damaged goods, supplier return, etc."
+                  className={fieldClass}
+                />
+              </label>
+
+              {stockAdjustError && (
+                <p className="rounded-xl border border-primary-300 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-900">
+                  {stockAdjustError}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-3">
+                <button type="submit" disabled={adjustStock.isPending} className={primaryButtonClass}>
+                  <Save className="h-4 w-4" />
+                  {adjustStock.isPending ? "Adjusting..." : "Apply Adjustment"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockAdjustId(null)}
+                  className={ghostButtonClass}
+                >
                   Cancel
                 </button>
               </div>

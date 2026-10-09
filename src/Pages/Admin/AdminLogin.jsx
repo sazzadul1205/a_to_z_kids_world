@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Navigate, useLocation } from "react-router";
-import { KeyRound, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
+import { KeyRound, Loader2, LockKeyhole, ShieldCheck, Zap, UserCheck } from "lucide-react";
 import { useAuth } from "../../context/auth/useAuth";
+
+// These must match the seeded admin credentials from backend/scripts/seed.js
+const QUICK_LOGINS = [
+  { label: "Store Admin", email: "admin@atozkids.world", password: "admin12345" },
+];
 
 const AdminLogin = () => {
   const { signIn, isAuthenticated, isAdmin, status } = useAuth();
@@ -21,6 +26,18 @@ const AdminLogin = () => {
   }
 
   if (isAuthenticated && isAdmin) return <Navigate to={from} replace />;
+
+  const handleQuickLogin = async (email, password) => {
+    setCredentials({ email, password });
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await signIn(email, password);
+    } catch (err) {
+      setError(err.message);
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -54,6 +71,31 @@ const AdminLogin = () => {
           <p className="mt-5 text-sm leading-relaxed text-text-muted">
             This area manages the catalogue. Shoppers never see it.
           </p>
+
+          {/* Quick Login for Testing */}
+          <div className="mt-5 rounded-xl border border-accent-300 bg-accent-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-accent-900 flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5" />
+              Quick Login (Testing)
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {QUICK_LOGINS.map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  onClick={() => handleQuickLogin(account.email, account.password)}
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-accent-300 bg-white px-3 py-2 text-xs font-semibold text-accent-900 transition hover:bg-accent-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <UserCheck className="h-3.5 w-3.5" />
+                  {account.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-accent-700">
+              Click to sign in with the seeded admin account (admin@atozkids.world / admin12345).
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <label className="block">

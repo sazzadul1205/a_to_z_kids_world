@@ -10,6 +10,7 @@ export function CatalogProvider({ children }) {
   const { data, isPending, isError, error, refetch, isFetching } = useCatalogQuery();
 
   const value = useMemo(() => {
+    console.log('CatalogProvider data:', data);
     const categories = data?.categories ?? [];
     const lookup = makeCategoryLookup(categories);
 
@@ -17,9 +18,11 @@ export function CatalogProvider({ children }) {
     // read as "ready" rather than blanking the grid back to skeletons.
     const status = isError ? "error" : isPending ? "loading" : "ready";
 
+    const products = (data?.products ?? []).map((raw) => mapProduct(raw, lookup));
+    console.log('CatalogProvider products:', products.length);
     return {
       categories,
-      products: (data?.products ?? []).map((raw) => mapProduct(raw, lookup)),
+      products,
       status,
       error,
       reload: refetch,

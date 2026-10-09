@@ -13,6 +13,12 @@ export const queryKeys = {
   orders: ["orders"],
   users: ["users"],
   session: ["session"],
+  inventory: ["inventory"],
+  inventoryProduct: (id) => ["inventory", id],
+  inventoryMovements: ["inventory", "movements"],
+  inventoryAlerts: ["inventory", "alerts"],
+  purchaseOrders: ["purchaseOrders"],
+  purchaseOrder: (id) => ["purchaseOrders", id],
 };
 
 // The catalogue changes only when an admin edits it, so holding it briefly stops

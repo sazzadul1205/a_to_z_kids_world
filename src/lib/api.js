@@ -117,7 +117,15 @@ export const productsApi = {
 };
 
 export const inventoryApi = {
-  list: (params, signal) => api.get("/inventory", { params, signal }),
+  list: (params, signal) => {
+    const queryParams = { ...(params || {}), limit: params?.limit || 100 };
+    return api.get("/inventory", { params: queryParams, signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.products)) {
+        return res.products;
+      }
+      return res;
+    });
+  },
   getProduct: (id, signal) => api.get(`/inventory/${id}`, { signal }),
   adjustStock: (id, adjustment, reason, referenceId, referenceType) =>
     api.post(`/inventory/${id}/adjust`, { adjustment, reason, referenceId, referenceType }),
@@ -139,7 +147,15 @@ export const reviewsApi = {
 };
 
 export const ordersApi = {
-  list: (params, signal) => api.get("/orders", { params, signal }),
+  list: (params, signal) => {
+    const queryParams = { ...(params || {}), limit: params?.limit || 100 };
+    return api.get("/orders", { params: queryParams, signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.orders)) {
+        return res.orders;
+      }
+      return res;
+    });
+  },
   create: (data) => api.post("/orders", data),
   updateStatus: (id, status) => api.put(`/orders/${id}`, { status }),
   remove: (id) => api.delete(`/orders/${id}`),
@@ -166,7 +182,15 @@ export const settingsApi = {
 };
 
 export const purchaseOrdersApi = {
-  list: (params, signal) => api.get("/purchase-orders", { params, signal }),
+  list: (params, signal) => {
+    const queryParams = { ...(params || {}), limit: params?.limit || 100 };
+    return api.get("/purchase-orders", { params: queryParams, signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.orders)) {
+        return res.orders;
+      }
+      return res;
+    });
+  },
   get: (id, signal) => api.get(`/purchase-orders/${id}`, { signal }),
   create: (data) => api.post("/purchase-orders", data),
   updateStatus: (id, status) => api.put(`/purchase-orders/${id}`, { status }),

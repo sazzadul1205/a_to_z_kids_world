@@ -26,6 +26,7 @@ import PurchaseOrders from "./Backend/Pages/PurchaseOrders/PurchaseOrders";
 import ExpenseCategories from "./Backend/Pages/ExpenseCategories/ExpenseCategories";
 import Expenses from "./Backend/Pages/Expenses/Expenses";
 import Analytics from "./Backend/Pages/Analytics/Analytics";
+import BackupRestore from "./Backend/Pages/BackupRestore/BackupRestore";
 
 function App() {
   return (
@@ -59,6 +60,7 @@ function App() {
                 <Route path="expense-categories" element={<ExpenseCategories />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="users" element={<Users />} />
+                <Route path="backup" element={<BackupRestore />} />
               </Route>
 
               <Route path="/" element={<Layout />}>

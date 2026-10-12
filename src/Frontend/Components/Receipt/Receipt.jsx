@@ -122,7 +122,22 @@ export function ThermalReceipt({ sale, onClose, onPrint }) {
             {sale.customerPhone && (
               <p className="text-[11px]"><span className="bold">Phone:</span> {sale.customerPhone}</p>
             )}
+            {sale.customerEmail && (
+              <p className="text-[11px]"><span className="bold">Email:</span> {sale.customerEmail}</p>
+            )}
+            {sale.customerAddress && (
+              <p className="text-[11px]"><span className="bold">Address:</span> {sale.customerAddress}</p>
+            )}
+            {sale.saleNumber && (
+              <p className="text-[11px]"><span className="bold">Sale #:</span> {sale.saleNumber}</p>
+            )}
             <p className="text-[11px]"><span className="bold">Payment:</span> {sale.paymentMethod || "Cash"}</p>
+            {sale.discount && sale.discount > 0 && (
+              <p className="text-[11px] text-red-600"><span className="bold">Discount:</span> -{formatBDT(sale.discount)} ({sale.discountType === "percentage" ? `${sale.discountValue}%` : ""})</p>
+            )}
+            {sale.balance > 0 && (
+              <p className="text-[11px] text-accent-700"><span className="bold">Balance:</span> {formatBDT(sale.balance)}</p>
+            )}
           </div>
 
           <div className="line" />
@@ -151,7 +166,7 @@ export function ThermalReceipt({ sale, onClose, onPrint }) {
             </div>
             {sale.discount && sale.discount > 0 && (
               <div className="row text-[12px] text-red-600">
-                <span>Discount</span>
+                <span>Discount {sale.discountType === "percentage" ? `(${sale.discountValue || ""}%)` : ""}</span>
                 <span className="bold">-{formatBDT(sale.discount)}</span>
               </div>
             )}
@@ -175,6 +190,18 @@ export function ThermalReceipt({ sale, onClose, onPrint }) {
               <div className="row text-[12px] text-green-600">
                 <span>Change</span>
                 <span className="bold">{formatBDT(sale.change)}</span>
+              </div>
+            )}
+            {sale.balance && sale.balance > 0 && (
+              <div className="row text-[12px] text-accent-700">
+                <span>Balance (Due)</span>
+                <span className="bold">{formatBDT(sale.balance)}</span>
+              </div>
+            )}
+            {sale.debtRepayment && sale.debtRepayment > 0 && (
+              <div className="row text-[12px] text-green-700">
+                <span>Debt Paid</span>
+                <span className="bold">-{formatBDT(sale.debtRepayment)}</span>
               </div>
             )}
           </div>
@@ -327,6 +354,12 @@ export function A4Receipt({ sale, onClose, onPrint }) {
               <div>
                 <p><span className="label">Customer:</span> <span className="value">{sale.customerName}</span></p>
                 <p><span className="label">Phone:</span> <span className="value">{sale.customerPhone || "N/A"}</span></p>
+                {sale.customerEmail && (
+                  <p><span className="label">Email:</span> <span className="value">{sale.customerEmail}</span></p>
+                )}
+                {sale.customerAddress && (
+                  <p><span className="label">Address:</span> <span className="value">{sale.customerAddress}</span></p>
+                )}
               </div>
             )}
           </div>
@@ -359,7 +392,7 @@ export function A4Receipt({ sale, onClose, onPrint }) {
             </div>
             {sale.discount && sale.discount > 0 && (
               <div className="row text-red-600">
-                <span>Discount</span>
+                <span>Discount {sale.discountType === "percentage" ? `(${sale.discountValue}%)` : ""}</span>
                 <span>-{formatBDT(sale.discount)}</span>
               </div>
             )}
@@ -379,10 +412,16 @@ export function A4Receipt({ sale, onClose, onPrint }) {
                 <span>{formatBDT(sale.amountPaid)}</span>
               </div>
             )}
-            {sale.change && sale.change > 0 && (
+            {sale.balance && sale.balance > 0 && (
+              <div className="row text-accent-600">
+                <span>Balance (Due)</span>
+                <span className="font-bold">{formatBDT(sale.balance)}</span>
+              </div>
+            )}
+            {sale.debtRepayment && sale.debtRepayment > 0 && (
               <div className="row text-green-600">
-                <span>Change</span>
-                <span>{formatBDT(sale.change)}</span>
+                <span>Debt Repayment</span>
+                <span className="font-bold">-{formatBDT(sale.debtRepayment)}</span>
               </div>
             )}
           </div>

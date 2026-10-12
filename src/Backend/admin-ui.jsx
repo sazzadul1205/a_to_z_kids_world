@@ -38,6 +38,7 @@ const STATUS_TONES = {
   Processing: "bg-secondary-100 text-secondary-1000",
   Completed: "bg-primary-100 text-primary-900",
   Cancelled: "bg-surface-soft text-text-muted",
+  Due: "bg-accent-100 text-accent-900",
   Admin: "bg-primary-100 text-primary-900",
   Customer: "bg-secondary-100 text-secondary-1000",
 };

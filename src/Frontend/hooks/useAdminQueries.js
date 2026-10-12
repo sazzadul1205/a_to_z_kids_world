@@ -2,8 +2,10 @@ import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   authApi,
+  backupApi,
   categoriesApi,
   inventoryApi,
+  logsApi,
   ordersApi,
   productsApi,
   purchaseOrdersApi,
@@ -300,4 +302,39 @@ export function usePurchaseOrderMutations() {
       onSuccess: () => invalidate(keys),
     }),
   };
+}
+
+export function useBackupsQuery() {
+  return useQuery({
+    queryKey: queryKeys.backups,
+    queryFn: ({ signal }) => backupApi.list(signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useBackupMutations() {
+  const invalidate = useInvalidate();
+
+  return {
+    create: useMutation({
+      mutationFn: () => backupApi.create(),
+      onSuccess: () => invalidate([queryKeys.backups]),
+    }),
+    restore: useMutation({
+      mutationFn: ({ filename, options }) => backupApi.restore(filename, options),
+      onSuccess: () => invalidate([queryKeys.backups, queryKeys.orders, queryKeys.catalog]),
+    }),
+    remove: useMutation({
+      mutationFn: (filename) => backupApi.remove(filename),
+      onSuccess: () => invalidate([queryKeys.backups]),
+    }),
+  };
+}
+
+export function useLogsQuery() {
+  return useQuery({
+    queryKey: queryKeys.logs,
+    queryFn: ({ signal }) => logsApi.list(signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
 }

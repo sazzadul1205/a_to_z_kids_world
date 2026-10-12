@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, CreditCard, Banknote, Smartphone, Landmark, Tag } from "lucide-react";
 import { useCatalog } from "../../../Frontend/context/catalog/useCatalog";
 import { formatBDT } from "../../../Frontend/lib/currency";
 import { useOrderMutations, useOrdersQuery } from "../../../Frontend/hooks/useAdminQueries";
@@ -14,7 +14,21 @@ import {
   dangerButtonClass,
 } from "../../admin-ui";
 
-const STATUSES = ["Pending", "Processing", "Completed", "Cancelled"];
+const STATUSES = ["Pending", "Processing", "Completed", "Cancelled", "Due"];
+
+const PAYMENT_ICONS = {
+  cash: Banknote,
+  card: CreditCard,
+  mobile: Smartphone,
+  due: Landmark,
+};
+
+const PAYMENT_LABELS = {
+  cash: "Cash",
+  card: "Card",
+  mobile: "Mobile",
+  due: "Due / Credit",
+};
 
 const Orders = () => {
   const { products } = useCatalog();
@@ -92,6 +106,12 @@ const Orders = () => {
           ) : (
             visibleOrders.map((order) => {
               const product = productById.get(String(order.productId));
+              const PaymentIcon = PAYMENT_ICONS[order.paymentMethod] || Banknote;
+              const orderTotal = order.total || order.totalPrice || 0;
+              const orderPaid = order.amountPaid || 0;
+              const outstanding = Math.max(0, orderTotal - orderPaid);
+              const hasDiscount = order.discount && order.discount > 0;
+
               return (
                 <div
                   key={order._id}
@@ -102,23 +122,49 @@ const Orders = () => {
                       <img src={product.image} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
                     )}
                     <div className="min-w-0">
-                      <p className="truncate font-bold text-text">
+                      <p className="truncate font-bold text-text flex items-center gap-2">
                         {product?.name || "Removed product"}
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            order.paymentMethod === "due"
+                              ? "bg-accent-100 text-accent-900"
+                              : "bg-surface-soft text-text-muted"
+                          }`}
+                          title={PAYMENT_LABELS[order.paymentMethod] || order.paymentMethod}
+                        >
+                          <PaymentIcon className="h-3 w-3" />
+                          {PAYMENT_LABELS[order.paymentMethod] || "Cash"}
+                        </span>
                       </p>
                       <p className="truncate text-xs text-text-muted">
-                        {order.quantity} × {formatBDT(product?.price ?? 0)} ·{" "}
+                        {order.quantity || 1} × {formatBDT(product?.price ?? 0)} ·{" "}
                         {new Date(order.createdAt).toLocaleString()}
                       </p>
                       <p className="truncate text-xs text-text-muted">
-                        Customer ref: {String(order.userId).slice(-8)}
+                        {order.customerName
+                          ? `${order.customerName}${order.customerPhone ? ` · ${order.customerPhone}` : ""}`
+                          : `Customer: ${String(order.userId).slice(-8)}`}
                       </p>
+                      {hasDiscount && (
+                        <p className="truncate text-xs text-text-muted">
+                          <Tag className="inline h-3 w-3" /> Discount: -{formatBDT(order.discount)}
+                          {order.discountType === "percentage" && ` (${order.discountValue}%)`}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <span className="text-base font-black text-secondary-1000">
-                      {formatBDT(order.totalPrice)}
-                    </span>
+                    <div className="text-right">
+                      <span className="text-base font-black text-secondary-1000 block">
+                        {formatBDT(orderTotal)}
+                      </span>
+                      {outstanding > 0 && (
+                        <span className="text-xs font-bold text-accent-700">
+                          {formatBDT(outstanding)} due
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={order.status}
                       disabled={busyId === order._id}

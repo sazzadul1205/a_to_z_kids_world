@@ -1,5 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, Loader2, Save, X, AlertCircle, Printer, FileText } from "lucide-react";
+import {
+  Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, Loader2, Save,
+  X, AlertCircle, Printer, FileText, Landmark, Mail, MapPin,
+  User, Phone,
+} from "lucide-react";
 import { useCatalog } from "../../../Frontend/context/catalog/useCatalog";
 import { useOrderMutations, useOrdersQuery } from "../../../Frontend/hooks/useAdminQueries";
 import { formatBDT } from "../../../Frontend/lib/currency";
@@ -21,6 +25,12 @@ const PAYMENT_METHODS = [
   { value: "cash", label: "Cash", icon: Banknote },
   { value: "card", label: "Card", icon: CreditCard },
   { value: "mobile", label: "Mobile Banking", icon: Smartphone },
+  { value: "due", label: "Due / Credit", icon: Landmark },
+];
+
+const DISCOUNT_TYPES = [
+  { value: "fixed", label: "Fixed Amount" },
+  { value: "percentage", label: "Percentage" },
 ];
 
 const Pos = () => {
@@ -30,10 +40,11 @@ const Pos = () => {
 
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customer, setCustomer] = useState({ name: "", phone: "", email: "", address: "" });
   const [notes, setNotes] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
+  const [discountType, setDiscountType] = useState("fixed");
+  const [discountValue, setDiscountValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,7 +56,7 @@ const Pos = () => {
     [products]
   );
 
-  const cartTotal = useMemo(
+  const cartSubtotal = useMemo(
     () => cart.reduce((sum, item) => {
       const product = products.find((p) => p._id === item.productId);
       return sum + (product ? product.price * item.quantity : 0);
@@ -53,10 +64,41 @@ const Pos = () => {
     [cart, products]
   );
 
+  const discountAmount = useMemo(() => {
+    const val = Number(discountValue) || 0;
+    if (val <= 0) return 0;
+    return discountType === "percentage"
+      ? (cartSubtotal * val) / 100
+      : Math.min(val, cartSubtotal);
+  }, [cartSubtotal, discountType, discountValue]);
+
+  const cartTotal = useMemo(
+    () => Math.max(0, cartSubtotal - discountAmount),
+    [cartSubtotal, discountAmount]
+  );
+
   const cartItemsCount = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart]
   );
+
+  const customerDebt = useMemo(() => {
+    if (!customer.phone.trim()) return 0;
+    const phone = customer.phone.trim();
+    return orders?.reduce((sum, order) => {
+      if (order.customerPhone !== phone) return sum;
+      const orderTotal = order.total || order.totalPrice || 0;
+      const orderPaid = order.amountPaid || 0;
+      const orderDebt = Math.max(0, orderTotal - orderPaid);
+      return sum + orderDebt;
+    }, 0) || 0;
+  }, [orders, customer.phone]);
+
+  const amountDue = useMemo(() => {
+    if (paymentMethod === "due") return cartTotal;
+    const paid = Number(amountPaid) || 0;
+    return Math.max(0, cartTotal - paid);
+  }, [cartTotal, amountPaid, paymentMethod]);
 
   const addToCart = useCallback((productId) => {
     setCart((prev) => {
@@ -104,6 +146,12 @@ const Pos = () => {
 
   const clearCart = useCallback(() => {
     setCart([]);
+    setCustomer({ name: "", phone: "", email: "", address: "" });
+    setNotes("");
+    setAmountPaid("");
+    setDiscountType("fixed");
+    setDiscountValue("");
+    setPaymentMethod("cash");
   }, []);
 
   const handleSubmit = async (event) => {
@@ -115,7 +163,7 @@ const Pos = () => {
       return;
     }
 
-    if (!customerName.trim() && !customerPhone.trim()) {
+    if (!customer.name.trim() && !customer.phone.trim()) {
       const confirmed = await confirmDialog({
         title: "No customer info?",
         text: "Are you sure you want to proceed without customer name or phone?",
@@ -124,9 +172,13 @@ const Pos = () => {
       if (!confirmed) return;
     }
 
-    const paidAmount = Number(amountPaid) || cartTotal;
-    if (paidAmount < cartTotal && paymentMethod === "cash") {
-      setFormError("Amount paid cannot be less than total for cash payments");
+    const paidAmount = paymentMethod === "due" ? 0 : Number(amountPaid) || cartTotal;
+    const effectiveDebtRepayment = paymentMethod !== "due"
+      ? Math.max(0, paidAmount - cartTotal)
+      : 0;
+
+    if (paymentMethod !== "due" && paidAmount < cartTotal) {
+      setFormError("Amount paid cannot be less than total for cash/card payments (unless paying off debt separately)");
       return;
     }
 
@@ -144,12 +196,19 @@ const Pos = () => {
       const order = await createOrder.mutateAsync({
         userId: "pos-walkin",
         items,
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
+        customer: customer,
+        customerName: customer.name.trim(),
+        customerPhone: customer.phone.trim(),
+        customerEmail: customer.email.trim(),
+        customerAddress: customer.address.trim(),
         paymentMethod,
-        discount: 0,
+        discount: discountAmount,
+        discountType,
+        discountValue: Number(discountValue) || 0,
         tax: 0,
         amountPaid: paidAmount,
+        debtRepayment: effectiveDebtRepayment,
+        balance: paymentMethod === "due" ? cartTotal : Math.max(0, cartTotal - paidAmount + (effectiveDebtRepayment > 0 ? 0 : customerDebt)),
         notes: notes.trim(),
         cashierId: "pos-user",
       });
@@ -165,12 +224,19 @@ const Pos = () => {
         total: order.total,
         subtotal: order.subtotal,
         discount: order.discount,
+        discountType: order.discountType,
+        discountValue: order.discountValue,
         tax: order.tax,
         amountPaid: order.amountPaid,
         change: order.change,
         paymentMethod: order.paymentMethod,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
+        customerEmail: order.customerEmail,
+        customerAddress: order.customerAddress,
+        customerDebt: order.customerDebt,
+        debtRepayment: order.debtRepayment,
+        balance: order.balance,
         cashier: "POS User",
         createdAt: order.createdAt,
       };
@@ -178,10 +244,6 @@ const Pos = () => {
       setLastSale(saleData);
       toastSuccess(`Sale completed! ${cartItemsCount} item${cartItemsCount === 1 ? "" : "s"} sold for ${formatBDT(cartTotal)}`);
       clearCart();
-      setCustomerName("");
-      setCustomerPhone("");
-      setNotes("");
-      setAmountPaid("");
       refetch();
     } catch (err) {
       setFormError(err.message);
@@ -377,18 +439,49 @@ const Pos = () => {
                 <div className="mt-4 border-t border-border pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
-                    <span className="font-bold">{formatBDT(cartTotal)}</span>
+                    <span className="font-bold">{formatBDT(cartSubtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-lg font-black">
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-primary-700">
+                      <span>Discount {discountType === "percentage" ? `(${Number(discountValue || 0)}%)` : ""}</span>
+                      <span className="font-bold">-{formatBDT(discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-black border-t border-border pt-2">
                     <span>Total</span>
                     <span>{formatBDT(cartTotal)}</span>
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-4">
-                  <label className="block">
+                  <div>
+                    <span className={labelClass}>Discount</span>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <select
+                        value={discountType}
+                        onChange={(e) => setDiscountType(e.target.value)}
+                        className={fieldClass}
+                      >
+                        {DISCOUNT_TYPES.map((type) => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="0"
+                        step={discountType === "percentage" ? "0.01" : "0.01"}
+                        max={discountType === "percentage" ? "100" : undefined}
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={discountType === "percentage" ? "10%" : "৳100"}
+                        className={`${fieldClass} w-32`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
                     <span className={labelClass}>Payment Method</span>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {PAYMENT_METHODS.map((method) => (
                         <button
                           key={method.value}
@@ -405,32 +498,79 @@ const Pos = () => {
                         </button>
                       ))}
                     </div>
-                  </label>
+                  </div>
 
-                  <label className="block">
-                    <span className={labelClass}>Customer Name (optional)</span>
-                    <input
-                      type="text"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Walk-in customer"
-                      className={fieldClass}
-                    />
-                  </label>
+                  <div>
+                    <span className={labelClass}>Customer Name</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="text"
+                        value={customer.name}
+                        onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                        placeholder="Walk-in customer"
+                        className={fieldClass}
+                      />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                    </div>
+                  </div>
 
-                  <label className="block">
-                    <span className={labelClass}>Customer Phone (optional)</span>
-                    <input
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="+8801XXXXXXXXX"
-                      className={fieldClass}
-                    />
-                  </label>
+                  <div>
+                    <span className={labelClass}>Phone Number</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="tel"
+                        value={customer.phone}
+                        onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                        placeholder="+8801XXXXXXXXX"
+                        className={fieldClass}
+                      />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                    </div>
+                  </div>
 
-                  <label className="block">
-                    <span className={labelClass}>Notes (optional)</span>
+                  {customerDebt > 0 && (
+                    <div className="rounded-xl border border-accent-300 bg-accent-50 px-4 py-3">
+                      <p className="text-sm font-bold text-accent-900 flex items-center gap-2">
+                        <Landmark className="h-4 w-4" />
+                        Outstanding Debt
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-accent-900">{formatBDT(customerDebt)}</p>
+                      <p className="mt-1 text-xs text-accent-800">
+                        {customer.name && `${customer.name}, `}this customer has an outstanding balance from previous credit sales.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <span className={labelClass}>Email</span>
+                    <div className="relative mt-1">
+                      <input
+                        type="email"
+                        value={customer.email}
+                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                        placeholder="customer@example.com"
+                        className={fieldClass}
+                      />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className={labelClass}>Address</span>
+                    <div className="relative mt-1">
+                      <textarea
+                        rows={2}
+                        value={customer.address}
+                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                        placeholder="123, Main Road, Dhaka..."
+                        className={fieldClass}
+                      />
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-text-muted" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className={labelClass}>Notes</span>
                     <textarea
                       rows={2}
                       value={notes}
@@ -438,23 +578,39 @@ const Pos = () => {
                       placeholder="Gift wrap, special instructions..."
                       className={fieldClass}
                     />
-                  </label>
+                  </div>
 
-                  <label className="block">
-                    <span className={labelClass}>Amount Paid (Cash)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(e.target.value)}
-                      placeholder={formatBDT(cartTotal)}
-                      className={fieldClass}
-                    />
-                    <p className="mt-1 text-xs text-text-muted">
-                      Change: {formatBDT(Math.max(0, (Number(amountPaid) || cartTotal) - cartTotal))}
-                    </p>
-                  </label>
+                  {paymentMethod !== "due" && (
+                    <div>
+                      <span className={labelClass}>Amount Paid {customerDebt > 0 && <span className="text-xs text-text-muted">(excess reduces debt)</span>}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(e.target.value)}
+                        placeholder={formatBDT(cartTotal)}
+                        className={fieldClass}
+                      />
+                      <p className="mt-1 text-xs text-text-muted">
+                        Change: {formatBDT(Math.max(0, (Number(amountPaid) || 0) - cartTotal))}
+                        {customerDebt > 0 && Number(amountPaid || 0) > cartTotal && (
+                          <span className="block text-accent-800 font-bold">
+                            Debt reduction: {formatBDT(Math.max(0, (Number(amountPaid) || 0) - cartTotal))}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === "due" && (
+                    <div className="rounded-xl border border-accent-300 bg-accent-50 px-4 py-3">
+                      <p className="text-sm font-semibold text-accent-800 flex items-center gap-2">
+                        <Landmark className="h-4 w-4" />
+                        This sale will be recorded as "Due". The amount of {formatBDT(cartTotal)} will be added to the customer's outstanding balance.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex gap-2">
                     <button
@@ -472,6 +628,9 @@ const Pos = () => {
                         <>
                           <Save className="h-5 w-5" />
                           Complete Sale - {formatBDT(cartTotal)}
+                          {paymentMethod === "due" && amountDue > 0 && (
+                            <span className="ml-2 text-accent-200">({formatBDT(amountDue)} due)</span>
+                          )}
                         </>
                       )}
                     </button>
@@ -531,34 +690,44 @@ const Pos = () => {
               {[...orders]
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                 .slice(0, 20)
-                .map((order) => {
-                  const firstItem = order.items?.[0];
-                  const product = firstItem ? products.find((p) => p._id === firstItem.productId) : null;
-                  const itemCount = order.items?.length || 1;
-                  return (
-                    <div
-                      key={order._id}
-                      className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3"
-                    >
-                    <div className="flex min-w-0 items-center gap-3">
-                      {product?.image && (
-                        <img src={product.image} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate font-bold text-text">
-                          {product?.name || firstItem?.productName || "Removed product"}
-                          {itemCount > 1 && <span className="ml-2 text-xs text-text-muted">+{itemCount - 1} more</span>}
-                        </p>
-                        <p className="truncate text-xs text-text-muted">
-                          {formatBDT(order.total || order.totalPrice)} ·{" "}
-                          {new Date(order.createdAt).toLocaleString()}
-                        </p>
-                        <p className="truncate text-xs text-text-muted">
-                          {order.saleNumber ? `Sale: ${order.saleNumber}` : `ID: ${order._id?.slice(-8)}`}
-                          {order.customerName && ` · ${order.customerName}`}
-                        </p>
-                      </div>
-                    </div>
+                   .map((order) => {
+                   const firstItem = order.items?.[0];
+                   const product = firstItem ? products.find((p) => p._id === firstItem.productId) : null;
+                   const itemCount = order.items?.length || 1;
+                   const orderTotal = order.total || order.totalPrice || 0;
+                   const orderPaid = order.amountPaid || 0;
+                   const outstanding = Math.max(0, orderTotal - orderPaid);
+                   const isDue = order.paymentMethod === "due";
+                   return (
+                     <div
+                       key={order._id}
+                       className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3"
+                     >
+                     <div className="flex min-w-0 items-center gap-3">
+                       {product?.image && (
+                         <img src={product.image} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                       )}
+                       <div className="min-w-0">
+                         <p className="truncate font-bold text-text flex items-center gap-2">
+                           {product?.name || firstItem?.productName || "Removed product"}
+                           {itemCount > 1 && <span className="ml-2 text-xs text-text-muted">+{itemCount - 1} more</span>}
+                           {isDue && (
+                             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-accent-100 text-accent-900">
+                             <Landmark className="h-3 w-3" /> Due
+                           </span>
+                           )}
+                         </p>
+                         <p className="truncate text-xs text-text-muted">
+                           {formatBDT(orderTotal)} ·{" "}
+                           {new Date(order.createdAt).toLocaleString()}
+                         </p>
+                         <p className="truncate text-xs text-text-muted">
+                           {order.saleNumber ? `Sale: ${order.saleNumber}` : `ID: ${order._id?.slice(-8)}`}
+                           {order.customerName && ` · ${order.customerName}`}
+                           {outstanding > 0 && ` · ${formatBDT(outstanding)} outstanding`}
+                         </p>
+                       </div>
+                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
                       <span className="text-base font-black text-secondary-1000">

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 import {
   Boxes,
+  Database,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { to: "/admin/orders", label: "Orders", icon: Boxes },
   { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
   { to: "/admin/analytics", label: "Analytics", icon: PieChart },
+  { to: "/admin/backup", label: "Backup & Restore", icon: Database },
   { to: "/admin/users", label: "Staff", icon: UserCog },
 ];
 

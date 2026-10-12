@@ -243,3 +243,17 @@ export const analyticsApi = {
   // Combined Dashboard
   dashboard: (params, signal) => api.get("/analytics/dashboard", { params, signal }),
 };
+
+export const backupApi = {
+  list: (signal) => api.get("/backup", { signal }),
+  create: () => api.post("/backup"),
+  restore: (filename, options) => api.post(`/backup/${filename}/restore`, options || {}),
+  remove: (filename) => api.delete(`/backup/${filename}`),
+  getData: (filename, signal) => api.get(`/backup/${filename}/data`, { signal }),
+};
+
+export const logsApi = {
+  list: (signal) => api.get("/logs", { signal }),
+  read: (filename, params, signal) => api.get(`/logs/${filename}`, { params, signal }),
+  clear: () => api.delete("/logs"),
+};

@@ -75,7 +75,7 @@ export function ThermalReceipt({ sale, onClose, onPrint }) {
       aria-labelledby="thermal-receipt-title"
     >
       <div
-        className="w-full max-w-[360px] bg-white shadow-2xl rounded-lg overflow-hidden"
+        className="w-full max-w-90 bg-white shadow-2xl rounded-lg overflow-hidden"
         style={{ width: `${THERMAL_WIDTH}px` }}
         onClick={(e) => e.stopPropagation()}
       >

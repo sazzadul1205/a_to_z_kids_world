@@ -1,27 +1,31 @@
 import { BrowserRouter, Route, Routes } from "react-router";
-import { ThemeProvider } from "./context/theme/ThemeContext";
-import { AppQueryProvider } from "./context/query/AppQueryProvider";
-import { CatalogProvider } from "./context/catalog/CatalogProvider";
-import { LanguageProvider } from "./context/language/LanguageProvider";
-import { AuthProvider } from "./context/auth/AuthProvider";
-import { ReviewProvider } from "./context/review/ReviewProvider";
-import Layout from "./layout/Layout";
-import Home from "./Pages/Home/Home";
-import NotFound from "./Pages/NotFound/NotFound";
-import Checkout from "./Pages/Checkout/Checkout";
-import Shop from "./Pages/Shop/Shop";
-import { About, Contact, Privacy, Sitemap, Terms } from "./Pages/SitePages";
-import AdminLogin from "./Pages/Admin/AdminLogin";
-import AdminLayout from "./Pages/Admin/AdminLayout";
-import RequireAdmin from "./Pages/Admin/RequireAdmin";
-import Dashboard from "./Pages/Admin/Dashboard";
-import CategoriesAdmin from "./Pages/Admin/CategoriesAdmin";
-import ProductsAdmin from "./Pages/Admin/ProductsAdmin";
-import ReviewsAdmin from "./Pages/Admin/ReviewsAdmin";
-import OrdersAdmin from "./Pages/Admin/OrdersAdmin";
-import UsersAdmin from "./Pages/Admin/UsersAdmin";
-import PosAdmin from "./Pages/Admin/PosAdmin";
-import InventoryAdmin from "./Pages/Admin/InventoryAdmin";
+import { ThemeProvider } from "./Frontend/context/theme/ThemeContext";
+import { AppQueryProvider } from "./Frontend/context/query/AppQueryProvider";
+import { CatalogProvider } from "./Frontend/context/catalog/CatalogProvider";
+import { LanguageProvider } from "./Frontend/context/language/LanguageProvider";
+import { AuthProvider } from "./Frontend/context/auth/AuthProvider";
+import { ReviewProvider } from "./Frontend/context/review/ReviewProvider";
+import Layout from "./Frontend/Layout/Layout";
+import Home from "./Frontend/Pages/Home/Home";
+import NotFound from "./Frontend/Pages/NotFound/NotFound";
+import Checkout from "./Frontend/Pages/Checkout/Checkout";
+import Shop from "./Frontend/Pages/Shop/Shop";
+import { About, Contact, Privacy, Sitemap, Terms } from "./Frontend/Pages/SitePages";
+import Login from "./Backend/Auth/Login";
+import BackendLayout from "./Backend/Layout";
+import RequireAuth from "./Backend/RequireAuth";
+import Dashboard from "./Backend/Pages/Dashboard/Dashboard";
+import Categories from "./Backend/Pages/Categories/Categories";
+import Products from "./Backend/Pages/Products/Products";
+import Reviews from "./Backend/Pages/Reviews/Reviews";
+import Orders from "./Backend/Pages/Orders/Orders";
+import Users from "./Backend/Pages/Users/Users";
+import Pos from "./Backend/Pages/Pos/Pos";
+import Inventory from "./Backend/Pages/Inventory/Inventory";
+import PurchaseOrders from "./Backend/Pages/PurchaseOrders/PurchaseOrders";
+import ExpenseCategories from "./Backend/Pages/ExpenseCategories/ExpenseCategories";
+import Expenses from "./Backend/Pages/Expenses/Expenses";
+import Analytics from "./Backend/Pages/Analytics/Analytics";
 
 function App() {
   return (
@@ -34,23 +38,27 @@ function App() {
           <BrowserRouter>
             <Routes>
               {/* Staff area. Deliberately unlinked from the storefront. */}
-              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/login" element={<Login />} />
               <Route
                 path="/admin"
                 element={
-                  <RequireAdmin>
-                    <AdminLayout />
-                  </RequireAdmin>
+                  <RequireAuth>
+                    <BackendLayout />
+                  </RequireAuth>
                 }
               >
                 <Route index element={<Dashboard />} />
-                <Route path="pos" element={<PosAdmin />} />
-                <Route path="inventory" element={<InventoryAdmin />} />
-                <Route path="products" element={<ProductsAdmin />} />
-                <Route path="categories" element={<CategoriesAdmin />} />
-                <Route path="reviews" element={<ReviewsAdmin />} />
-                <Route path="orders" element={<OrdersAdmin />} />
-                <Route path="users" element={<UsersAdmin />} />
+                <Route path="pos" element={<Pos />} />
+                <Route path="inventory" element={<Inventory />} />
+                <Route path="purchase-orders" element={<PurchaseOrders />} />
+                <Route path="products" element={<Products />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="reviews" element={<Reviews />} />
+                <Route path="orders" element={<Orders />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="expense-categories" element={<ExpenseCategories />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="users" element={<Users />} />
               </Route>
 
               <Route path="/" element={<Layout />}>

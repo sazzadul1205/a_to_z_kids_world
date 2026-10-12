@@ -1,0 +1,822 @@
+import { useMemo, useRef, useState } from "react";
+import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, UploadCloud, X, PackagePlus } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { resolveImageUrl, uploadsApi } from "../../../Frontend/lib/api";
+import { useCatalog } from "../../../Frontend/context/catalog/useCatalog";
+import { useProductMutations } from "../../../Frontend/hooks/useAdminQueries";
+import { formatBDT } from "../../../Frontend/lib/currency";
+import { confirmDialog, toastError, toastSuccess } from "../../../Frontend/lib/swal";
+import Pagination from "../../../Frontend/Components/Pagination";
+import { usePagination } from "../../../Frontend/hooks/usePagination";
+import {
+  AdminEmpty,
+  AdminError,
+  AdminLoader,
+  dangerButtonClass,
+  fieldClass,
+  ghostButtonClass,
+  labelClass,
+  primaryButtonClass,
+} from "../../admin-ui";
+
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+const emptyDraft = {
+  name: "",
+  description: "",
+  price: "",
+  buyPrice: "",
+  stock: "",
+  categoryId: "",
+  image: "",
+  age: "",
+  includes: "",
+  sku: "",
+};
+
+const fromProduct = (product) => ({
+  name: product.name,
+  description: product.description || "",
+  price: String(product.price),
+  buyPrice: String(product.buyPrice ?? ""),
+  stock: String(product.stock),
+  categoryId: String(product.categoryId || ""),
+  image: product.rawImage || "",
+  age: product.age || "",
+  includes: product.includes || "",
+  sku: product.sku || "",
+});
+
+const Products = () => {
+  const { products, categories, status, error, reload } = useCatalog();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(emptyDraft);
+  const [formError, setFormError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const {
+    create,
+    update,
+    remove,
+    toggleActive,
+    bulkDelete,
+    bulkSetFlag,
+    adjustStock,
+  } = useProductMutations();
+
+  // Uploading does not touch the catalogue, so it invalidates nothing; it only
+  // needs to report whether it is in flight.
+  const upload = useMutation({ mutationFn: (file) => uploadsApi.image(file) });
+
+  const busy =
+    create.isPending ||
+    update.isPending ||
+    remove.isPending ||
+    toggleActive.isPending ||
+    bulkDelete.isPending ||
+    bulkSetFlag.isPending ||
+    adjustStock.isPending;
+  const uploading = upload.isPending;
+
+  const [stockAdjustId, setStockAdjustId] = useState(null);
+  const [stockAdjustQty, setStockAdjustQty] = useState("");
+  const [stockAdjustReason, setStockAdjustReason] = useState("");
+  const [stockAdjustError, setStockAdjustError] = useState(null);
+
+  const openStockAdjust = (product) => {
+    setStockAdjustId(product._id);
+    setStockAdjustQty("");
+    setStockAdjustReason("");
+    setStockAdjustError(null);
+  };
+
+  const handleStockAdjust = async (event) => {
+    event.preventDefault();
+    setStockAdjustError(null);
+
+    const adjustment = Number(stockAdjustQty);
+    if (!Number.isInteger(adjustment)) {
+      setStockAdjustError("Adjustment must be a whole number");
+      return;
+    }
+    if (!stockAdjustReason.trim()) {
+      setStockAdjustError("Reason is required");
+      return;
+    }
+
+    try {
+      await adjustStock.mutateAsync({
+        id: stockAdjustId,
+        adjustment,
+        reason: stockAdjustReason.trim(),
+      });
+      setStockAdjustId(null);
+      setStockAdjustQty("");
+      setStockAdjustReason("");
+      toastSuccess("Stock adjusted successfully");
+    } catch (err) {
+      setStockAdjustError(err.message);
+    }
+  };
+
+  // The backend requires a categoryId, so fall back to the first one rather
+  // than waiting for the draft to be filled in.
+  const effectiveCategoryId =
+    draft.categoryId || (categories.length > 0 ? String(categories[0]._id) : "");
+
+  const toggleSelect = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const selectAll = () =>
+    setSelected((prev) =>
+      prev.size === products.length ? new Set() : new Set(products.map((p) => p._id)),
+    );
+
+  // Newest first, like the orders screen: a freshly created product
+  // lands on page 1 instead of the end of the catalogue.
+  const orderedProducts = useMemo(
+    () =>
+      [...products].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      ),
+    [products],
+  );
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingId(null);
+    setDraft(emptyDraft);
+    setFormError(null);
+    setFieldErrors(null);
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setDraft({
+      ...emptyDraft,
+      categoryId: categories.length > 0 ? String(categories[0]._id) : "",
+    });
+    setFormError(null);
+    setFieldErrors(null);
+    setIsFormOpen(true);
+  };
+
+  const openEdit = (product) => {
+    setEditingId(product._id);
+    setDraft(fromProduct(product));
+    setFormError(null);
+    setFieldErrors(null);
+    setIsFormOpen(true);
+  };
+
+  const { page, setPage, pageSize, total, totalPages, window: visibleProducts } =
+    usePagination(orderedProducts);
+
+  // Shared by the file picker and the drag-and-drop zone, so both
+  // paths get the same validation and error reporting.
+  const uploadFile = async (file) => {
+    if (!file) return;
+
+    setFormError(null);
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setFormError("Only JPEG, PNG, WebP, GIF or AVIF images can be uploaded.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setFormError("Images must be 5 MB or smaller.");
+      return;
+    }
+
+    try {
+      const result = await upload.mutateAsync(file);
+      setDraft((current) => ({ ...current, image: result.url }));
+    } catch (err) {
+      setFormError(`Upload failed: ${err.message}`);
+    }
+  };
+
+  const handleUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    uploadFile(file);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    uploadFile(event.dataTransfer.files?.[0]);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setFormError(null);
+    setFieldErrors(null);
+
+    const payload = {
+      name: draft.name.trim(),
+      description: draft.description.trim(),
+      sku: draft.sku.trim().toUpperCase(),
+      price: Number(draft.price),
+      buyPrice: Number(draft.buyPrice),
+      stock: Number(draft.stock),
+      categoryId: effectiveCategoryId,
+      image: draft.image.trim(),
+      details: {
+        ...(draft.age.trim() ? { age: draft.age.trim() } : {}),
+        ...(draft.includes.trim() ? { includes: draft.includes.trim() } : {}),
+      },
+    };
+
+    try {
+      if (editingId) await update.mutateAsync({ id: editingId, ...payload });
+      else await create.mutateAsync(payload);
+      closeForm();
+    } catch (err) {
+      setFormError(err.message);
+      setFieldErrors(err.errors || null);
+    }
+  };
+
+  const handleDelete = async (product) => {
+    const confirmed = await confirmDialog({
+      title: `Delete "${product.name}"?`,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await remove.mutateAsync(product._id);
+      if (editingId === product._id) closeForm();
+    } catch (err) {
+      setFormError(err.message);
+    }
+  };
+
+  const handleToggleActive = async (product) => {
+    try {
+      await toggleActive.mutateAsync(product._id);
+      toastSuccess(
+        product.isActive === false
+          ? `${product.name} is now live in the shop.`
+          : `${product.name} is hidden from the shop.`,
+      );
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const confirmed = await confirmDialog({
+      title: `Delete ${ids.length} product${ids.length === 1 ? "" : "s"}?`,
+      text: "This cannot be undone.",
+      confirmText: "Yes, delete",
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await bulkDelete.mutateAsync(ids);
+      setSelected(new Set());
+      toastSuccess(`${ids.length} product${ids.length === 1 ? "" : "s"} deleted.`);
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleBulkActivate = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    try {
+      await bulkSetFlag.mutateAsync({ ids, flag: "isActive", value: true });
+      setSelected(new Set());
+      toastSuccess(`${ids.length} product${ids.length === 1 ? "" : "s"} activated.`);
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const confirmed = await confirmDialog({
+      title: `Hide ${ids.length} product${ids.length === 1 ? "" : "s"} from the shop?`,
+      text: "They stay in the catalogue and can be reactivated later.",
+      confirmText: "Hide",
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await bulkSetFlag.mutateAsync({ ids, flag: "isActive", value: false });
+      setSelected(new Set());
+      toastSuccess(`${ids.length} product${ids.length === 1 ? "" : "s"} hidden.`);
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  if (status === "loading") return <AdminLoader label="Loading products..." />;
+
+  return (
+    <div className="space-y-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary-600">Catalogue</p>
+          <h1 className="mt-1 text-3xl font-black text-text sm:text-4xl">Products</h1>
+        </div>
+        <button type="button" onClick={openCreate} disabled={categories.length === 0} className={primaryButtonClass}>
+          <Plus className="h-4 w-4" /> New product
+        </button>
+      </header>
+
+      {error && <AdminError message={error.message} onRetry={reload} />}
+      {categories.length === 0 && (
+        <p className="rounded-2xl border border-accent-300 bg-accent-50 px-5 py-4 text-sm font-semibold text-accent-900">
+          Create a category first — every product must belong to one.
+        </p>
+      )}
+      {formError && !isFormOpen && (
+        <p className="rounded-2xl border border-primary-300 bg-primary-50 px-5 py-4 text-sm font-semibold text-primary-900">
+          {formError}
+        </p>
+      )}
+
+      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-black text-text">
+            All products <span className="text-text-muted">({products.length})</span>
+          </h2>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-surface-soft px-3 py-1.5 text-xs font-bold text-text">
+              <input
+                type="checkbox"
+                checked={selected.size > 0 && selected.size === products.length}
+                onChange={selectAll}
+                className="h-4 w-4 rounded border-border"
+              />
+              Select all
+            </label>
+            <button
+              type="button"
+              disabled={selected.size === 0 || busy}
+              onClick={handleBulkActivate}
+              className={ghostButtonClass}
+            >
+              Activate
+            </button>
+            <button
+              type="button"
+              disabled={selected.size === 0 || busy}
+              onClick={handleBulkDeactivate}
+              className={ghostButtonClass}
+            >
+              Hide
+            </button>
+            <button
+              type="button"
+              disabled={selected.size === 0 || busy}
+              onClick={handleBulkDelete}
+              className={dangerButtonClass}
+            >
+              <Trash2 className="h-4 w-4" /> Delete
+            </button>
+          </div>
+        </div>
+
+        {selected.size > 0 && (
+          <p className="mt-2 text-xs text-text-muted">
+            {selected.size} product{selected.size === 1 ? "" : "s"} selected.
+          </p>
+        )}
+
+        <div className="mt-4 space-y-3">
+          {products.length === 0 ? (
+            <AdminEmpty title="No products yet" message="Add the first discovery to the shop." />
+          ) : (
+            visibleProducts.map((product) => (
+              <div
+                key={product._id}
+                className={`flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3 ${
+                  product.isActive === false ? "opacity-60" : ""
+                } ${selected.has(product._id) ? "ring-2 ring-primary-200" : ""}`}
+              >
+                <label className="flex min-w-0 cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(product._id)}
+                    onChange={() => toggleSelect(product._id)}
+                    // The wrapping label carries "in stock" and other
+                    // row text, which would otherwise become the
+                    // checkbox's accessible name.
+                    aria-label={`Select ${product.name}`}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <img
+                    src={product.image}
+                    alt=""
+                    className={`h-12 w-12 shrink-0 rounded-lg object-cover ${
+                      product.isActive === false ? "grayscale" : ""
+                    }`}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-text">
+                      {product.name}
+                      {product.isActive === false && (
+                        <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 align-middle text-xs font-bold uppercase tracking-wide text-primary-900">
+                          Hidden
+                        </span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-text-muted">
+                      {product.category || "Uncategorised"} · {formatBDT(product.price)} ·{" "}
+                      <span className={product.stock <= 0 ? "font-bold text-primary-700" : ""}>
+                        {product.stock} in stock
+                      </span>
+                    </p>
+                    <p className="truncate text-xs text-text-muted">
+                      {product.isActive === false ? (
+                        <span className="text-primary-700">Hidden from shop</span>
+                      ) : (
+                        <span className="text-secondary-1000">Live in shop</span>
+                      )}
+                    </p>
+                  </div>
+                </label>
+
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleToggleActive(product)}
+                    title={
+                      product.isActive === false ? "Activate product" : "Hide product"
+                    }
+                    className={ghostButtonClass}
+                  >
+                    {product.isActive === false ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
+                    )}
+                    {product.isActive === false ? "Activate" : "Hide"}
+                  </button>
+                  <button type="button" onClick={() => openEdit(product)} className={ghostButtonClass}>
+                    <Pencil className="h-4 w-4" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => openStockAdjust(product)}
+                    className={ghostButtonClass}
+                  >
+                    <PackagePlus className="h-4 w-4" /> Stock
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleDelete(product)}
+                    className={dangerButtonClass}
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          className="mt-4"
+        />
+      </section>
+
+      {isFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+          <div className="my-8 w-full max-w-2xl rounded-3xl bg-surface p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-black text-text">
+                {editingId ? "Edit product" : "New product"}
+              </h2>
+              <button
+                type="button"
+                onClick={closeForm}
+                aria-label="Close"
+                className="rounded-full p-2 text-text-muted transition hover:bg-primary-50 hover:text-primary-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-5 grid gap-4 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className={labelClass}>Name</span>
+                <input
+                  required
+                  minLength={2}
+                  maxLength={150}
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  className={fieldClass}
+                />
+                {fieldErrors?.name && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.name}
+                  </span>
+                )}
+              </label>
+
+              <label className="block sm:col-span-2">
+                <span className={labelClass}>Description</span>
+                <textarea
+                  rows={3}
+                  value={draft.description}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Price (BDT)</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={draft.price}
+                  onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                  className={fieldClass}
+                />
+                {fieldErrors?.price && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.price}
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Buy Price (BDT)</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={draft.buyPrice}
+                  onChange={(e) => setDraft({ ...draft, buyPrice: e.target.value })}
+                  className={fieldClass}
+                />
+                {fieldErrors?.buyPrice && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.buyPrice}
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>SKU</span>
+                <input
+                  required
+                  maxLength={50}
+                  value={draft.sku}
+                  onChange={(e) => setDraft({ ...draft, sku: e.target.value.toUpperCase() })}
+                  placeholder="TOY-001"
+                  className={fieldClass}
+                />
+                {fieldErrors?.sku && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.sku}
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Stock</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={draft.stock}
+                  onChange={(e) => setDraft({ ...draft, stock: e.target.value })}
+                  className={fieldClass}
+                />
+                {fieldErrors?.stock && (
+                  <span className="mt-1 block text-xs font-semibold text-primary-700">
+                    {fieldErrors.stock}
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Category</span>
+                <select
+                  required
+                  value={effectiveCategoryId}
+                  onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
+                  className={fieldClass}
+                >
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Age range</span>
+                <input
+                  maxLength={100}
+                  value={draft.age}
+                  onChange={(e) => setDraft({ ...draft, age: e.target.value })}
+                  placeholder="Ages 4–8"
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="block sm:col-span-2">
+                <span className={labelClass}>What's in the box</span>
+                <input
+                  maxLength={200}
+                  value={draft.includes}
+                  onChange={(e) => setDraft({ ...draft, includes: e.target.value })}
+                  placeholder="42 colourful wooden pieces"
+                  className={fieldClass}
+                />
+              </label>
+
+              <div className="block sm:col-span-2">
+                <span className={labelClass}>Image</span>
+                <div
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                  className={`flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3 transition ${
+                    isDragging
+                      ? "border-primary-400 bg-primary-50"
+                      : "border-border bg-surface-soft"
+                  }`}
+                >
+                  <input
+                    value={draft.image}
+                    onChange={(e) => setDraft({ ...draft, image: e.target.value })}
+                    placeholder="/uploads/your-image.webp or https://..."
+                    className={`${fieldClass} min-w-48 flex-1`}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                    onChange={handleUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className={ghostButtonClass}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" />
+                    )}
+                    {uploading ? "Uploading..." : "Upload"}
+                  </button>
+                </div>
+                <span className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
+                  <UploadCloud className="h-3.5 w-3.5 shrink-0" />
+                  Drag an image onto the box above, or use the picker. JPEG, PNG,
+                  WebP, GIF or AVIF up to 5 MB. Uploads are converted to WebP.
+                </span>
+              </div>
+
+              {draft.image && (
+                <img
+                  src={resolveImageUrl(draft.image)}
+                  alt=""
+                  className="h-32 w-full rounded-xl object-cover sm:col-span-2"
+                />
+              )}
+
+              {formError && (
+                <p className="rounded-xl border border-primary-300 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-900 sm:col-span-2">
+                  {formError}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-3 sm:col-span-2">
+                <button type="submit" disabled={busy || uploading} className={primaryButtonClass}>
+                  <Save className="h-4 w-4" />
+                  {editingId ? "Save changes" : "Create product"}
+                </button>
+                <button type="button" onClick={closeForm} className={ghostButtonClass}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {stockAdjustId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-surface p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-black text-text">Adjust Stock</h2>
+              <button
+                type="button"
+                onClick={() => setStockAdjustId(null)}
+                aria-label="Close"
+                className="rounded-full p-2 text-text-muted transition hover:bg-primary-50 hover:text-primary-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleStockAdjust} className="mt-5 space-y-4">
+              <p className="text-sm text-text-muted">
+                Adjust stock level for the selected product. Use positive numbers to add stock,
+                negative numbers to remove stock (e.g., damaged goods).
+              </p>
+
+              <label className="block">
+                <span className={labelClass}>Adjustment (units)</span>
+                <input
+                  type="number"
+                  required
+                  step="1"
+                  value={stockAdjustQty}
+                  onChange={(e) => setStockAdjustQty(e.target.value)}
+                  placeholder="+5 or -2"
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Reason</span>
+                <input
+                  required
+                  maxLength={200}
+                  value={stockAdjustReason}
+                  onChange={(e) => setStockAdjustReason(e.target.value)}
+                  placeholder="Stock take, damaged goods, supplier return, etc."
+                  className={fieldClass}
+                />
+              </label>
+
+              {stockAdjustError && (
+                <p className="rounded-xl border border-primary-300 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-900">
+                  {stockAdjustError}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-3">
+                <button type="submit" disabled={adjustStock.isPending} className={primaryButtonClass}>
+                  <Save className="h-4 w-4" />
+                  {adjustStock.isPending ? "Adjusting..." : "Apply Adjustment"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockAdjustId(null)}
+                  className={ghostButtonClass}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Products;

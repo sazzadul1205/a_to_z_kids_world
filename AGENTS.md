@@ -45,37 +45,68 @@ REVIEW_SUBMIT_WINDOW_MS=600000 npm start
 
 Then: `npm run dev` (separate terminal) && `npm run test:e2e`.
 
-## Layout (after the context reorg)
+## Layout (after Frontend/Backend reorg)
 
 ```
 src/
-  context/auth/     session token + admin-gated auth provider
-  context/cart/     basket context + hooks (localStorage)
-  context/catalog/  product/category catalogue provider + hooks
-  context/language/ en/Bn i18n (LanguageProvider, useLanguage)
-  context/query/    TanStack Query provider + defaults
-  context/theme/    dark-mode class toggle
-  hooks/            per-resource query/mutation hooks
-  lib/              axios client, cache keys, formatting helpers
-  layout/           site Layout (wraps Routes)
-  Pages/{Home,Shop,Checkout,Admin,SitePages}/
-  Shared/           navbar, footer, cart drawer, cart notice
+  App.jsx
+  main.jsx
+  Backend/                    staff-only area (English only)
+    admin-ui.jsx              shared UI primitives (AdminHeader, AdminDialog, FormField, etc.)
+    Layout.jsx                staff nav shell (wraps Routes)
+    RequireAuth.jsx           route guard
+    Auth/
+      Login.jsx               staff sign-in
+    Pages/
+      Analytics/              Analytics.jsx
+      Categories/              Categories.jsx
+      Dashboard/              Dashboard.jsx
+      ExpenseCategories/       ExpenseCategories.jsx + ExpenseCategoryFormModal.jsx
+      Expenses/                Expenses.jsx + ExpenseFormModal.jsx
+      Inventory/              Inventory.jsx + StockAdjustModal (shared with Inventory)
+      Orders/                 Orders.jsx
+      Pos/                    Pos.jsx
+      Products/               Products.jsx + ProductFormModal.jsx + StockAdjustModal.jsx
+      PurchaseOrders/         PurchaseOrders.jsx
+      Reviews/                Reviews.jsx
+      Users/                  Users.jsx
+  Frontend/                   public storefront (English/Bangla)
+    assets/
+    Components/               Pagination, Receipt
+    Shared/                   Navbar, Footer, CartDrawer, CartNotice
+    Layout/
+      Layout.jsx               site layout (wraps Routes)
+    context/                   auth, cart, catalog, language, query, review, theme
+    hooks/                      per-resource query/mutation hooks
+    lib/                        axios client, cache keys, formatting helpers
+    i18n/                       en/Bn translations
+    Pages/
+      Home/ sections/           Hero, Categories, Products, ProductModal
+      Shop/                     Shop.jsx
+      Checkout/                 Checkout.jsx
+      NotFound/                 NotFound.jsx
+      SitePages.jsx             About, Contact, Privacy, Sitemap, Terms
 ```
 
 The catalogue, auth, and cart moved from `src/Shared` and `src/Layouts` into
-`src/context/*`. The staff area and the public components (navbar/footer/cart drawer)
-stay in their original homes.
+`src/Frontend/context/*`. The staff area lives in `src/Backend/` (English only,
+unlinked from the storefront). Public components (navbar/footer/cart drawer) live in
+`src/Frontend/Shared/` and pages in `src/Frontend/Pages/`.
 
 ## Conventions that affect code changes
 
 - Admin copy is English-only and lives outside `Layout`. Only the public customer
   surface is translated English/Bangla.
-- `ALL_TOYS = "All toys"` in `src/lib/catalog.js` is a comparison sentinel — never
+- `/admin/login` is deliberately unlinked from the storefront. Staff accounts are
+  provisioned, not self-registered.
+- `ALL_TOYS = "All toys"` in `src/Frontend/lib/catalog.js` is a comparison sentinel — never
   compare against a translated label.
-- `src/Pages/Home/sections/ProductModal.jsx` keeps the non-standard
+- `src/Frontend/Pages/Home/sections/ProductModal.jsx` keeps the non-standard
   `md:h-107.5` Tailwind change (intentional).
 - Dark mode is a token swap (`src/index.css` ramps + role/fill tokens); don't add
   ad-hoc `dark:` overrides. Run `npm run audit:contrast` after touching colours.
+- Admin (staff) copy is English-only and lives in `src/Backend/`. Only the public
+  customer surface in `src/Frontend/` is translated English/Bangla.
 
 See `README.md` for the full design notes (data loading, theming, cart, language,
 checkout, staff area, session handling).

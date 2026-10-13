@@ -194,7 +194,6 @@ const Orders = () => {
 
       <AdminDataTable
         title="Orders"
-        subtitle="Fulfilment"
         items={visibleOrders}
         columns={columns}
         status={status}

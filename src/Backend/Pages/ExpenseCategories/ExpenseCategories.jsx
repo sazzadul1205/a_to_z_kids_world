@@ -189,7 +189,6 @@ const ExpenseCategories = () => {
 
       <AdminDataTable
         title="Expense Categories"
-        subtitle="Accounting"
         items={visibleCategories}
         columns={columns}
         status={status}

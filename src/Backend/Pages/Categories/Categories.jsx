@@ -189,16 +189,20 @@ const Categories = () => {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-sm font-bold uppercase tracking-widest text-primary-600">Catalogue</p>
-        <h1 className="mt-1 text-3xl font-black text-text sm:text-4xl">Categories</h1>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary-600">Catalogue</p>
+          <h1 className="mt-1 text-3xl font-black text-text sm:text-4xl">Categories</h1>
+        </div>
+        <button type="button" onClick={openCreate} className={primaryButtonClass}>
+          <Plus className="h-4 w-4" /> New category
+        </button>
       </header>
 
       {error && <AdminError message={error.message} onRetry={reload} />}
 
       <AdminDataTable
         title="Categories"
-        subtitle="Catalogue"
         items={visibleCategories}
         columns={columns}
         status={status}
@@ -210,11 +214,6 @@ const Categories = () => {
         getRowKey={getRowKey}
         pagination={{ page, pageSize, total: categories.length, totalPages }}
         onPaginationChange={handlePageChange}
-        headerActions={
-          <button type="button" onClick={openCreate} className={primaryButtonClass}>
-            <Plus className="h-4 w-4" /> New category
-          </button>
-        }
       />
 
       <AdminFormModal

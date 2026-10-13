@@ -1,9 +1,97 @@
 import { useId } from "react";
 import { AlertTriangle, Loader2, PackageOpen, Save, X, CheckSquare, MinusSquare, ChevronLeft, ChevronRight, Trash2, Pencil, ImagePlus, UploadCloud } from "lucide-react";
 
+// A toy-box preloader: a bouncing ball, two hopping alphabet blocks
+// and twinkling stars. Animations live in index.css; every colour is a
+// theme token so the scene adapts to dark mode.
 export const AdminLoader = ({ label = "Loading..." }) => (
-  <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-text-muted">
-    <Loader2 className="h-7 w-7 animate-spin text-primary-600" />
+  <div
+    className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-text-muted"
+    role="status"
+    aria-live="polite"
+  >
+    <svg
+      className="h-20 w-28"
+      viewBox="0 0 140 92"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        className="toy-loader-star fill-accent-600"
+        transform="translate(70 12)"
+        d="M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z"
+      />
+      <path
+        className="toy-loader-star fill-accent-600"
+        transform="translate(18 30)"
+        style={{ animationDelay: "0.4s" }}
+        d="M0 -5 L1.3 -1.3 L5 0 L1.3 1.3 L0 5 L-1.3 1.3 L-5 0 L-1.3 -1.3 Z"
+      />
+      <path
+        className="toy-loader-star fill-accent-600"
+        transform="translate(122 26)"
+        style={{ animationDelay: "0.8s" }}
+        d="M0 -5 L1.3 -1.3 L5 0 L1.3 1.3 L0 5 L-1.3 1.3 L-5 0 L-1.3 -1.3 Z"
+      />
+
+      <ellipse
+        className="toy-loader-shadow"
+        cx="70"
+        cy="81"
+        rx="22"
+        ry="4.5"
+        fill="currentColor"
+      />
+
+      <g className="toy-loader-ball">
+        <circle cx="70" cy="62" r="14" className="fill-primary-500" />
+        <g>
+          <path
+            d="M57 57 Q70 64 83 57"
+            stroke="#ffffff"
+            strokeWidth="3"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M57 63 Q70 70 83 63"
+            stroke="#ffffff"
+            strokeWidth="3"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.65"
+          />
+          <circle cx="64" cy="56" r="3" fill="#ffffff" opacity="0.6" />
+        </g>
+      </g>
+
+      <g className="toy-loader-block-a">
+        <rect x="22" y="52" width="24" height="24" rx="6" className="fill-secondary-600" />
+        <text
+          x="34"
+          y="64"
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="fill-white"
+          style={{ fontSize: "16px", fontWeight: 900 }}
+        >
+          A
+        </text>
+      </g>
+      <g className="toy-loader-block-z">
+        <rect x="94" y="52" width="24" height="24" rx="6" className="fill-accent-600" />
+        <text
+          x="106"
+          y="64"
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="fill-ink-bright"
+          style={{ fontSize: "16px", fontWeight: 900 }}
+        >
+          Z
+        </text>
+      </g>
+    </svg>
     <p className="text-sm font-semibold">{label}</p>
   </div>
 );
@@ -107,7 +195,9 @@ export const FormField = ({ label, htmlFor, required, error, children, className
     {label && (
       <label htmlFor={htmlFor} className={labelClass}>
         {label}
-        {required && " *"}
+        {/* The star is drawn by .required-star in index.css so
+            the label's text stays exactly the field name. */}
+        {required && <span className="required-star" aria-hidden="true" />}
       </label>
     )}
     {children}
@@ -181,7 +271,9 @@ export const AdminSelectAll = ({ checked, indeterminate, onChange, label = "Sele
       <input
         type="checkbox"
         checked={checked}
-        indeterminate={indeterminate}
+        ref={(el) => {
+          if (el) el.indeterminate = indeterminate;
+        }}
         onChange={onChange}
         className="h-4 w-4 rounded border-border"
       />
@@ -369,7 +461,6 @@ export const AdminPagination = ({ page, totalPages, total, pageSize, onPageChang
 
 export const AdminDataTable = ({
   title,
-  subtitle,
   items,
   columns,
   status = "idle",
@@ -386,7 +477,6 @@ export const AdminDataTable = ({
   pagination,
   onPaginationChange,
   onPageSizeChange,
-  headerActions,
   loadingLabel = "Loading...",
 }) => {
   const { page, pageSize, total, totalPages } = pagination || {};
@@ -414,16 +504,6 @@ export const AdminDataTable = ({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-primary-600">
-            {subtitle || "Data"}
-          </p>
-          <h1 className="mt-1 text-3xl font-black text-text sm:text-4xl">{title}</h1>
-        </div>
-        <div className="flex items-center gap-3">{headerActions}</div>
-      </div>
-
       {items.length === 0 && (
         <AdminEmpty title={emptyTitle || "No items yet"} message={emptyMessage} />
       )}
@@ -558,20 +638,20 @@ export const AdminFormModal = ({
 export const FormFieldInput = ({ label, htmlFor, required, error, children, className = "", ...props }) => (
   <FormField label={label} htmlFor={htmlFor} required={required} error={error} className={className}>
     {children}
-    <input {...props} />
+    <input id={htmlFor} {...props} />
   </FormField>
 );
 
 export const FormFieldSelect = ({ label, htmlFor, required, error, children, className = "", ...props }) => (
   <FormField label={label} htmlFor={htmlFor} required={required} error={error} className={className}>
     {children}
-    <select {...props} />
+    <select id={htmlFor} {...props} />
   </FormField>
 );
 
 export const FormFieldTextarea = ({ label, htmlFor, required, error, children, className = "", ...props }) => (
   <FormField label={label} htmlFor={htmlFor} required={required} error={error} className={className}>
     {children}
-    <textarea {...props} />
+    <textarea id={htmlFor} {...props} />
   </FormField>
 );

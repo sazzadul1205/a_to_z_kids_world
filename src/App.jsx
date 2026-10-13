@@ -25,7 +25,7 @@ import Inventory from "./Backend/Pages/Inventory/Inventory";
 import PurchaseOrders from "./Backend/Pages/PurchaseOrders/PurchaseOrders";
 import ExpenseCategories from "./Backend/Pages/ExpenseCategories/ExpenseCategories";
 import Expenses from "./Backend/Pages/Expenses/Expenses";
-import Analytics from "./Backend/Pages/Analytics/Analytics";
+import SalesReport from "./Backend/Pages/Reports/SalesReport";
 import BackupRestore from "./Backend/Pages/BackupRestore/BackupRestore";
 import Templates from "./Backend/Pages/Templates/Templates";
 import Customers from "./Backend/Pages/Customers/Customers";
@@ -60,7 +60,7 @@ function App() {
                 <Route path="orders" element={<Orders />} />
                 <Route path="expenses" element={<Expenses />} />
                 <Route path="expense-categories" element={<ExpenseCategories />} />
-                <Route path="analytics" element={<Analytics />} />
+                <Route path="analytics" element={<SalesReport />} />
                 <Route path="users" element={<Users />} />
                 <Route path="backup" element={<BackupRestore />} />
                 <Route path="templates" element={<Templates />} />

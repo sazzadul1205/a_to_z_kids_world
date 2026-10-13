@@ -181,3 +181,105 @@ body {
   color: var(--color-text);
   transition: background-color 300ms ease, color 300ms ease;
 }
+
+/* ========== Toy loader (admin preloader) ========== */
+/* A bouncing ball, two hopping alphabet blocks and twinkling stars.
+   Colours come from the Tailwind theme so they adapt to dark mode. */
+@keyframes toy-loader-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.1, 0.9);
+  }
+  18% {
+    transform: translateY(-6px) scale(0.97, 1.03);
+  }
+  50% {
+    transform: translateY(-26px) scale(1, 1);
+  }
+  82% {
+    transform: translateY(-6px) scale(0.97, 1.03);
+  }
+}
+
+@keyframes toy-loader-shadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.28;
+  }
+  50% {
+    transform: scaleX(0.55);
+    opacity: 0.12;
+  }
+}
+
+@keyframes toy-loader-hop {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  35% {
+    transform: translateY(-7px) rotate(-5deg);
+  }
+  70% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes toy-loader-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.toy-loader-ball {
+  animation: toy-loader-bounce 0.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.toy-loader-shadow {
+  animation: toy-loader-shadow 0.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.toy-loader-block-a {
+  animation: toy-loader-hop 0.9s ease-in-out 0.15s infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.toy-loader-block-z {
+  animation: toy-loader-hop 0.9s ease-in-out 0.3s infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.toy-loader-star {
+  animation: toy-loader-twinkle 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toy-loader-ball,
+  .toy-loader-shadow,
+  .toy-loader-block-a,
+  .toy-loader-block-z,
+  .toy-loader-star {
+    animation: none;
+  }
+}
+
+/* Required-field marker. Drawn with ::after so a label's text
+   content stays exactly the field name — label association,
+   getByLabel and other tooling match on the plain name. The
+   input's required attribute conveys the requirement to
+   assistive tech. */
+.required-star::after {
+  content: " *";
+  color: var(--color-primary-900);
+}

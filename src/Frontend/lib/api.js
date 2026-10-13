@@ -218,7 +218,13 @@ export const uploadsApi = {
 };
 
 export const expenseCategoriesApi = {
-  list: (signal) => api.get("/expense-categories", { signal }),
+  list: (signal) =>
+    api.get("/expense-categories", { signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.categories)) {
+        return res.categories;
+      }
+      return res;
+    }),
   get: (id, signal) => api.get(`/expense-categories/${id}`, { signal }),
   create: (data) => api.post("/expense-categories", data),
   update: (id, data) => api.put(`/expense-categories/${id}`, data),
@@ -242,24 +248,30 @@ export const expensesApi = {
   remove: (id) => api.delete(`/expenses/${id}`),
   bulkDelete: (ids) => api.post("/expenses/bulk/delete", { ids }),
   // Analytics
-  summary: (params, signal) => api.get("/expenses/analytics/summary", { params, signal }),
-  trends: (params, signal) => api.get("/expenses/analytics/trends", { params, signal }),
-  byCategory: (params, signal) => api.get("/expenses/analytics/by-category", { params, signal }),
-  top: (params, signal) => api.get("/expenses/analytics/top", { params, signal }),
+  summary: (params, signal) => api.get("/expenses/reports/summary", { params, signal }),
+  trends: (params, signal) => api.get("/expenses/reports/trends", { params, signal }),
+  byCategory: (params, signal) => api.get("/expenses/reports/by-category", { params, signal }),
+  top: (params, signal) => api.get("/expenses/reports/top", { params, signal }),
 };
 
-export const analyticsApi = {
+export const reportsApi = {
   // Product In/Out
-  productInOutSummary: (params, signal) => api.get("/analytics/product-in-out/summary", { params, signal }),
-  productInOutTrends: (params, signal) => api.get("/analytics/product-in-out/trends", { params, signal }),
-  productInOutByProduct: (params, signal) => api.get("/analytics/product-in-out/by-product", { params, signal }),
-  productInOutMovements: (params, signal) => api.get("/analytics/product-in-out/movements", { params, signal }),
+  productInOutSummary: (params, signal) => api.get("/reports/product-in-out/summary", { params, signal }),
+  productInOutTrends: (params, signal) => api.get("/reports/product-in-out/trends", { params, signal }),
+  productInOutByProduct: (params, signal) => api.get("/reports/product-in-out/by-product", { params, signal }),
+  productInOutMovements: (params, signal) => api.get("/reports/product-in-out/movements", { params, signal }),
   // Combined Dashboard
-  dashboard: (params, signal) => api.get("/analytics/dashboard", { params, signal }),
+  dashboard: (params, signal) => api.get("/reports/dashboard", { params, signal }),
 };
 
 export const backupApi = {
-  list: (signal) => api.get("/backup", { signal }),
+  list: (signal) =>
+    api.get("/backup", { signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.backups)) {
+        return res.backups;
+      }
+      return res;
+    }),
   create: () => api.post("/backup"),
   restore: (filename, options) => api.post(`/backup/${filename}/restore`, options || {}),
   remove: (filename) => api.delete(`/backup/${filename}`),

@@ -123,7 +123,10 @@ test.describe("language toggle", () => {
     await page.reload();
     await page.getByRole("button", { name: /switch to bangla/i }).click();
 
-    const card = page.locator("article").first();
+    const card = page
+      .locator("article")
+      .filter({ has: page.getByRole("button", { name: /এখনই কিনুন/ }) })
+      .first();
     await card.getByRole("button", { name: /এখনই কিনুন/ }).click();
 
     const dialog = page.getByRole("dialog");

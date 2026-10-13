@@ -57,8 +57,11 @@ test.describe("storefront", () => {
     // A multi-word query is the regression: typing a space used to drop it.
     await search.fill("Building blocks");
     await expect(search).toHaveValue("Building blocks");
-    await expect(page.locator("article")).toHaveCount(12);
-    await expect(page.getByRole("heading", { name: "Building blocks Demo 1", exact: true })).toBeVisible();
+    // The seeded catalogue's "Building blocks" category holds three products.
+    await expect(page.locator("article")).toHaveCount(3);
+    await expect(
+      page.getByRole("heading", { name: "Rainbow Builder Set", exact: true }),
+    ).toBeVisible();
   });
 
   test("search reflects partial input and clears back to the full list", async ({ page }) => {

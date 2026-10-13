@@ -1,6 +1,9 @@
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import {
   Boxes,
+  ChevronDown,
+  Coins,
   Database,
   FileText,
   LayoutDashboard,
@@ -22,27 +25,76 @@ import {
 import { useAuth } from "../Frontend/context/auth/useAuth";
 import { useTheme } from "../Frontend/context/theme/useTheme";
 
-const NAV_ITEMS = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/pos", label: "POS / Sales", icon: ShoppingCart },
-  { to: "/admin/purchase-orders", label: "Purchase Orders", icon: Truck },
-  { to: "/admin/inventory", label: "Inventory", icon: Warehouse },
-  { to: "/admin/products", label: "Products", icon: Package },
-  { to: "/admin/categories", label: "Categories", icon: Tags },
-  { to: "/admin/reviews", label: "Reviews", icon: MessageSquare },
-  { to: "/admin/orders", label: "Orders", icon: Boxes },
-  { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
-  { to: "/admin/analytics", label: "Analytics", icon: PieChart },
-  { to: "/admin/backup", label: "Backup & Restore", icon: Database },
-  { to: "/admin/templates", label: "Templates", icon: FileText },
-  { to: "/admin/customers", label: "Customers", icon: Users },
-  { to: "/admin/users", label: "Staff", icon: UserCog },
+// Grouped so it is obvious what belongs where: what we sell, the
+// stock behind it, the money, the reports and the system setup.
+const NAV_GROUPS = [
+  {
+    id: "overview",
+    label: "Overview",
+    items: [
+      { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+    ],
+  },
+  {
+    id: "selling",
+    label: "Selling",
+    items: [
+      { to: "/admin/pos", label: "POS / Sales", icon: ShoppingCart },
+      { to: "/admin/orders", label: "Orders", icon: Boxes },
+      { to: "/admin/customers", label: "Customers", icon: Users },
+    ],
+  },
+  {
+    id: "catalogue",
+    label: "Catalogue",
+    items: [
+      { to: "/admin/products", label: "Products", icon: Package },
+      { to: "/admin/categories", label: "Categories", icon: Tags },
+      { to: "/admin/reviews", label: "Reviews", icon: MessageSquare },
+    ],
+  },
+  {
+    id: "stock",
+    label: "Stock & Supply",
+    items: [
+      { to: "/admin/inventory", label: "Inventory", icon: Warehouse },
+      { to: "/admin/purchase-orders", label: "Purchase Orders", icon: Truck },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    items: [
+      { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
+      {
+        to: "/admin/expense-categories",
+        label: "Expense Categories",
+        icon: Coins,
+      },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports",
+    items: [{ to: "/admin/analytics", label: "Analytics", icon: PieChart }],
+  },
+  {
+    id: "system",
+    label: "System",
+    items: [
+      { to: "/admin/templates", label: "Templates", icon: FileText },
+      { to: "/admin/backup", label: "Backup & Restore", icon: Database },
+      { to: "/admin/users", label: "Staff", icon: UserCog },
+    ],
+  },
 ];
 
 const BackendLayout = () => {
   const { user, signOut } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [closedGroups, setClosedGroups] = useState(new Set());
 
   const handleSignOut = () => {
     signOut();
@@ -50,6 +102,26 @@ const BackendLayout = () => {
   };
 
   const toggle = () => toggleTheme();
+
+  const toggleGroup = (id) => {
+    setClosedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const isItemActive = (item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to);
+
+  // A group stays open while one of its pages is active, even
+  // if the user collapsed it earlier.
+  const isGroupActive = (group) => group.items.some(isItemActive);
+  const isOpen = (group) => !closedGroups.has(group.id) || isGroupActive(group);
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-soft text-text lg:flex-row">
@@ -69,24 +141,51 @@ const BackendLayout = () => {
           </div>
         </div>
 
-        <nav className="mt-6 flex gap-1 overflow-x-auto lg:flex-col">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `flex shrink-0 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-                  isActive
-                    ? "bg-brand-fill text-ink-on-brand"
-                    : "text-text hover:bg-primary-50 hover:text-primary-700"
-                }`
-              }
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </NavLink>
-          ))}
+        <nav className="mt-6 flex flex-col gap-4">
+          {NAV_GROUPS.map((group) => {
+            const open = isOpen(group);
+            const active = isGroupActive(group);
+            return (
+              <section key={group.id}>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  aria-expanded={open}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest transition hover:bg-primary-50 ${
+                    active ? "text-primary-600" : "text-text-muted"
+                  }`}
+                >
+                  {group.label}
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                      open ? "" : "-rotate-90"
+                    }`}
+                  />
+                </button>
+                {open && (
+                  <div className="mt-1 flex flex-col gap-1">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 rounded-xl py-2 pl-7 pr-4 text-sm font-bold transition ${
+                            isActive
+                              ? "bg-brand-fill text-ink-on-brand"
+                              : "text-text hover:bg-primary-50 hover:text-primary-700"
+                          }`
+                        }
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </nav>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5 lg:mt-auto">

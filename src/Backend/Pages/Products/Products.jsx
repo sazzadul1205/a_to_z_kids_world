@@ -12,7 +12,6 @@ import {
   AdminLoader,
   AdminFormModal,
   AdminDataTable,
-  AdminSelectAll,
   AdminRowActions,
   ImageUploadZone,
   FormError,
@@ -385,17 +384,6 @@ const Products = () => {
     </div>
   );
 
-  const handleSelectAll = () => {
-    if (selected.size === orderedProducts.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(orderedProducts.map((p) => p._id)));
-    }
-  };
-
-  const allSelected = orderedProducts.length > 0 && selected.size === orderedProducts.length;
-  const someSelected = selected.size > 0 && selected.size < orderedProducts.length;
-
   const handlePageChange = (newPage) => setPage(newPage);
   const handlePageSizeChange = () => {
     setPage(1);
@@ -427,7 +415,6 @@ const Products = () => {
 
       <AdminDataTable
         title="Products"
-        subtitle="Catalogue"
         items={visibleProducts}
         columns={columns}
         status={status}
@@ -452,13 +439,6 @@ const Products = () => {
         pagination={{ page, pageSize, total: orderedProducts.length, totalPages }}
         onPaginationChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
-        headerActions={
-          <AdminSelectAll
-            checked={allSelected}
-            indeterminate={someSelected}
-            onChange={handleSelectAll}
-          />
-        }
       />
 
       <AdminFormModal

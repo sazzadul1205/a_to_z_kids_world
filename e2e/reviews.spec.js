@@ -128,7 +128,9 @@ test.describe("public reviews", () => {
 
   test("a review is attached to the product it was left for", async ({ page }) => {
     const products = await apiGet("/products");
-    const withTwo = products.body.slice(0, 2);
+    // Sold-out cards render "Sold out" instead of a buy button, so the
+    // pair has to come from the in-stock products.
+    const withTwo = products.body.filter((p) => p.stock > 0).slice(0, 2);
     expect(withTwo.length).toBe(2);
 
     await openProduct(page, withTwo[0].name);

@@ -206,7 +206,6 @@ const Customers = () => {
 
       <AdminDataTable
         title="Customers"
-        subtitle={pagination.total > 0 ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, pagination.total)} of ${pagination.total}` : "All customers"}
         items={customers}
         columns={columns}
         status={status}

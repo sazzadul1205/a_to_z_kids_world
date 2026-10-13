@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useLocation } from "react-router";
 import { KeyRound, Loader2, LockKeyhole, ShieldCheck, Zap, UserCheck } from "lucide-react";
+import { AdminLoader } from "../admin-ui";
 import { useAuth } from "../../Frontend/context/auth/useAuth";
 
 // These must match the seeded admin credentials from backend/scripts/seed.js
@@ -19,8 +20,8 @@ const AdminLogin = () => {
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-soft text-text-muted">
-        <Loader2 className="h-7 w-7 animate-spin text-primary-600" />
+      <div className="flex min-h-screen items-center justify-center bg-surface-soft">
+        <AdminLoader label="Checking your session..." />
       </div>
     );
   }

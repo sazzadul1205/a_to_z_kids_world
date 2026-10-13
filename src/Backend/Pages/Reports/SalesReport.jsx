@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
-import { analyticsApi } from "../../../Frontend/lib/api";
+import { reportsApi } from "../../../Frontend/lib/api";
 import { formatBDT } from "../../../Frontend/lib/currency";
 import { AdminHeader, AdminLoader, AdminError, StatCard } from "../../admin-ui";
 
-const Analytics = () => {
+const SalesReport = () => {
 
   const {
     data: dashboard,
@@ -12,8 +12,8 @@ const Analytics = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["analytics-dashboard"],
-    queryFn: () => analyticsApi.dashboard({ days: 30 }),
+    queryKey: ["sales-report-dashboard"],
+    queryFn: () => reportsApi.dashboard({ days: 30 }),
     staleTime: 0,
   });
 
@@ -89,4 +89,4 @@ const Analytics = () => {
   );
 };
 
-export default Analytics;
+export default SalesReport;

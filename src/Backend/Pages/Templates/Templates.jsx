@@ -210,7 +210,6 @@ const Templates = () => {
 
       <AdminDataTable
         title="Templates"
-        subtitle="Settings"
         items={templates}
         columns={columns}
         status={status}

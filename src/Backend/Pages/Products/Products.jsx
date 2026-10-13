@@ -1,21 +1,27 @@
 import { useMemo, useRef, useState } from "react";
-import { EyeOff, Eye, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, UploadCloud, X, PackagePlus } from "lucide-react";
+import { EyeOff, Eye, Plus, UploadCloud, PackagePlus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { resolveImageUrl, uploadsApi } from "../../../Frontend/lib/api";
 import { useCatalog } from "../../../Frontend/context/catalog/useCatalog";
 import { useProductMutations } from "../../../Frontend/hooks/useAdminQueries";
 import { formatBDT } from "../../../Frontend/lib/currency";
 import { confirmDialog, toastError, toastSuccess } from "../../../Frontend/lib/swal";
-import Pagination from "../../../Frontend/Components/Pagination";
 import { usePagination } from "../../../Frontend/hooks/usePagination";
 import {
-  AdminEmpty,
   AdminError,
   AdminLoader,
-  dangerButtonClass,
+  AdminFormModal,
+  AdminDataTable,
+  AdminSelectAll,
+  AdminRowActions,
+  ImageUploadZone,
+  FormError,
+  FormField,
+  FormFieldInput,
+  FormFieldSelect,
+  FormFieldTextarea,
   fieldClass,
   ghostButtonClass,
-  labelClass,
   primaryButtonClass,
 } from "../../admin-ui";
 
@@ -39,6 +45,7 @@ const emptyDraft = {
   age: "",
   includes: "",
   sku: "",
+  isActive: true,
 };
 
 const fromProduct = (product) => ({
@@ -52,6 +59,7 @@ const fromProduct = (product) => ({
   age: product.age || "",
   includes: product.includes || "",
   sku: product.sku || "",
+  isActive: product.isActive !== false,
 });
 
 const Products = () => {
@@ -64,6 +72,10 @@ const Products = () => {
   const [selected, setSelected] = useState(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const [stockAdjustId, setStockAdjustId] = useState(null);
+  const [stockAdjustQty, setStockAdjustQty] = useState("");
+  const [stockAdjustReason, setStockAdjustReason] = useState("");
+  const [stockAdjustError, setStockAdjustError] = useState(null);
 
   const {
     create,
@@ -75,8 +87,6 @@ const Products = () => {
     adjustStock,
   } = useProductMutations();
 
-  // Uploading does not touch the catalogue, so it invalidates nothing; it only
-  // needs to report whether it is in flight.
   const upload = useMutation({ mutationFn: (file) => uploadsApi.image(file) });
 
   const busy =
@@ -89,67 +99,9 @@ const Products = () => {
     adjustStock.isPending;
   const uploading = upload.isPending;
 
-  const [stockAdjustId, setStockAdjustId] = useState(null);
-  const [stockAdjustQty, setStockAdjustQty] = useState("");
-  const [stockAdjustReason, setStockAdjustReason] = useState("");
-  const [stockAdjustError, setStockAdjustError] = useState(null);
-
-  const openStockAdjust = (product) => {
-    setStockAdjustId(product._id);
-    setStockAdjustQty("");
-    setStockAdjustReason("");
-    setStockAdjustError(null);
-  };
-
-  const handleStockAdjust = async (event) => {
-    event.preventDefault();
-    setStockAdjustError(null);
-
-    const adjustment = Number(stockAdjustQty);
-    if (!Number.isInteger(adjustment)) {
-      setStockAdjustError("Adjustment must be a whole number");
-      return;
-    }
-    if (!stockAdjustReason.trim()) {
-      setStockAdjustError("Reason is required");
-      return;
-    }
-
-    try {
-      await adjustStock.mutateAsync({
-        id: stockAdjustId,
-        adjustment,
-        reason: stockAdjustReason.trim(),
-      });
-      setStockAdjustId(null);
-      setStockAdjustQty("");
-      setStockAdjustReason("");
-      toastSuccess("Stock adjusted successfully");
-    } catch (err) {
-      setStockAdjustError(err.message);
-    }
-  };
-
-  // The backend requires a categoryId, so fall back to the first one rather
-  // than waiting for the draft to be filled in.
   const effectiveCategoryId =
     draft.categoryId || (categories.length > 0 ? String(categories[0]._id) : "");
 
-  const toggleSelect = (id) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  const selectAll = () =>
-    setSelected((prev) =>
-      prev.size === products.length ? new Set() : new Set(products.map((p) => p._id)),
-    );
-
-  // Newest first, like the orders screen: a freshly created product
-  // lands on page 1 instead of the end of the catalogue.
   const orderedProducts = useMemo(
     () =>
       [...products].sort(
@@ -185,11 +137,9 @@ const Products = () => {
     setIsFormOpen(true);
   };
 
-  const { page, setPage, pageSize, total, totalPages, window: visibleProducts } =
+  const { page, setPage, pageSize, totalPages, window: visibleProducts } =
     usePagination(orderedProducts);
 
-  // Shared by the file picker and the drag-and-drop zone, so both
-  // paths get the same validation and error reporting.
   const uploadFile = async (file) => {
     if (!file) return;
 
@@ -211,18 +161,6 @@ const Products = () => {
     }
   };
 
-  const handleUpload = (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    uploadFile(file);
-  };
-
-  const handleDrop = (event) => {
-    event.preventDefault();
-    setIsDragging(false);
-    uploadFile(event.dataTransfer.files?.[0]);
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setFormError(null);
@@ -241,6 +179,7 @@ const Products = () => {
         ...(draft.age.trim() ? { age: draft.age.trim() } : {}),
         ...(draft.includes.trim() ? { includes: draft.includes.trim() } : {}),
       },
+      isActive: draft.isActive,
     };
 
     try {
@@ -335,7 +274,132 @@ const Products = () => {
     }
   };
 
+  const openStockAdjust = (product) => {
+    setStockAdjustId(product._id);
+    setStockAdjustQty("");
+    setStockAdjustReason("");
+    setStockAdjustError(null);
+  };
+
+  const handleStockAdjust = async (event) => {
+    event.preventDefault();
+    setStockAdjustError(null);
+
+    const adjustment = Number(stockAdjustQty);
+    if (!Number.isInteger(adjustment)) {
+      setStockAdjustError("Adjustment must be a whole number");
+      return;
+    }
+    if (!stockAdjustReason.trim()) {
+      setStockAdjustError("Reason is required");
+      return;
+    }
+
+    try {
+      await adjustStock.mutateAsync({
+        id: stockAdjustId,
+        adjustment,
+        reason: stockAdjustReason.trim(),
+      });
+      setStockAdjustId(null);
+      setStockAdjustQty("");
+      setStockAdjustReason("");
+      toastSuccess("Stock adjusted successfully");
+    } catch (err) {
+      setStockAdjustError(err.message);
+    }
+  };
+
   if (status === "loading") return <AdminLoader label="Loading products..." />;
+
+  const columns = [
+    {
+      key: "image",
+      render: (product) => (
+        <img
+          src={product.image}
+          alt=""
+          className={`h-12 w-12 shrink-0 rounded-lg object-cover ${
+            product.isActive === false ? "grayscale" : ""
+          }`}
+        />
+      ),
+      className: "",
+    },
+    {
+      key: "name",
+      render: (product) => (
+        <div className="min-w-0">
+          <p className="truncate font-bold text-text">
+            {product.name}
+            {product.isActive === false && (
+              <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 align-middle text-xs font-bold uppercase tracking-wide text-primary-900">
+                Hidden
+              </span>
+            )}
+          </p>
+          <p className="truncate text-xs text-text-muted">
+            {product.category || "Uncategorised"} · {formatBDT(product.price)} ·{" "}
+            <span className={product.stock <= 0 ? "font-bold text-primary-700" : ""}>
+              {product.stock} in stock
+            </span>
+          </p>
+          <p className="truncate text-xs text-text-muted">
+            {product.isActive === false ? (
+              <span className="text-primary-700">Hidden from shop</span>
+            ) : (
+              <span className="text-secondary-1000">Live in shop</span>
+            )}
+          </p>
+        </div>
+      ),
+      className: "flex-1 min-w-0",
+    },
+  ];
+
+  const getRowKey = (product) => product._id;
+
+  const getRowClassName = (product) =>
+    product.isActive === false ? "opacity-60" : "";
+
+  const rowActions = (product) => (
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <AdminRowActions
+        onEdit={() => openEdit(product)}
+        onDelete={() => handleDelete(product)}
+        onToggle={handleToggleActive}
+        toggleLabel={product.isActive === false ? "Activate product" : "Hide product"}
+        toggleIcon={product.isActive === false ? Eye : EyeOff}
+        disabled={busy}
+        editLabel="Edit"
+        deleteLabel="Delete"
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => openStockAdjust(product)}
+        className={ghostButtonClass}
+      >
+        <PackagePlus className="h-4 w-4" /> Stock
+      </button>
+    </div>
+  );
+
+  const handleSelectAll = () => {
+    if (selected.size === orderedProducts.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(orderedProducts.map((p) => p._id)));
+    }
+  };
+
+  const allSelected = orderedProducts.length > 0 && selected.size === orderedProducts.length;
+  const someSelected = selected.size > 0 && selected.size < orderedProducts.length;
+
+  const handlePageChange = (newPage) => setPage(newPage);
+  const handlePageSizeChange = () => {
+    setPage(1);
+  };
 
   return (
     <div className="space-y-8">
@@ -361,459 +425,229 @@ const Products = () => {
         </p>
       )}
 
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-text">
-            All products <span className="text-text-muted">({products.length})</span>
-          </h2>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-surface-soft px-3 py-1.5 text-xs font-bold text-text">
+      <AdminDataTable
+        title="Products"
+        subtitle="Catalogue"
+        items={visibleProducts}
+        columns={columns}
+        status={status}
+        error={error}
+        onReload={reload}
+        emptyTitle="No products yet"
+        emptyMessage="Add the first discovery to the shop."
+        selection={{ selected, onSelect: setSelected }}
+        onSelectionChange={setSelected}
+        bulkActions={{
+          busy,
+          onActivate: handleBulkActivate,
+          onDeactivate: handleBulkDeactivate,
+          onDelete: handleBulkDelete,
+          activateLabel: "Activate",
+          deactivateLabel: "Hide",
+          deleteLabel: "Delete",
+        }}
+        rowActions={rowActions}
+        getRowKey={getRowKey}
+        getRowClassName={getRowClassName}
+        pagination={{ page, pageSize, total: orderedProducts.length, totalPages }}
+        onPaginationChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        headerActions={
+          <AdminSelectAll
+            checked={allSelected}
+            indeterminate={someSelected}
+            onChange={handleSelectAll}
+          />
+        }
+      />
+
+      <AdminFormModal
+        isOpen={isFormOpen}
+        onClose={closeForm}
+        title={editingId ? "Edit product" : "New product"}
+        sizeClass="max-w-3xl"
+        scrollable
+        busy={busy || uploading}
+        onSubmit={handleSubmit}
+        formError={formError}
+        submitLabel={editingId ? "Save changes" : "Create product"}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormFieldInput
+            label="Name"
+            htmlFor="pf-name"
+            required
+            error={fieldErrors?.name}
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            minLength={2}
+            maxLength={150}
+            className={fieldClass}
+          />
+          <FormFieldInput
+            label="SKU"
+            htmlFor="pf-sku"
+            error={fieldErrors?.sku}
+            value={draft.sku}
+            onChange={(e) => setDraft({ ...draft, sku: e.target.value.toUpperCase() })}
+            maxLength={50}
+            placeholder="TOY-001"
+            className={fieldClass}
+          />
+          <FormFieldInput
+            label="Price (BDT)"
+            htmlFor="pf-price"
+            required
+            error={fieldErrors?.price}
+            type="number"
+            min="0"
+            step="0.01"
+            value={draft.price}
+            onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+            className={fieldClass}
+          />
+          <FormFieldInput
+            label="Buy Price (BDT)"
+            htmlFor="pf-buyPrice"
+            error={fieldErrors?.buyPrice}
+            type="number"
+            min="0"
+            step="0.01"
+            value={draft.buyPrice}
+            onChange={(e) => setDraft({ ...draft, buyPrice: e.target.value })}
+            className={fieldClass}
+          />
+          <FormFieldInput
+            label="Stock"
+            htmlFor="pf-stock"
+            required
+            error={fieldErrors?.stock}
+            type="number"
+            min="0"
+            step="1"
+            value={draft.stock}
+            onChange={(e) => setDraft({ ...draft, stock: e.target.value })}
+            className={fieldClass}
+          />
+          <FormFieldSelect
+            label="Category"
+            htmlFor="pf-categoryId"
+            required
+            error={fieldErrors?.categoryId}
+            value={effectiveCategoryId}
+            onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
+            className={fieldClass}
+          >
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
+          </FormFieldSelect>
+          <FormFieldInput
+            label="Age range"
+            htmlFor="pf-age"
+            error={fieldErrors?.age}
+            maxLength={100}
+            value={draft.age}
+            onChange={(e) => setDraft({ ...draft, age: e.target.value })}
+            placeholder="Ages 4–8"
+            className={fieldClass}
+          />
+          <FormFieldInput
+            label="What's in the box"
+            htmlFor="pf-includes"
+            error={fieldErrors?.includes}
+            maxLength={200}
+            value={draft.includes}
+            onChange={(e) => setDraft({ ...draft, includes: e.target.value })}
+            placeholder="42 colourful wooden pieces"
+            className={fieldClass}
+          />
+          <FormFieldTextarea
+            label="Description"
+            htmlFor="pf-description"
+            className="sm:col-span-2"
+            error={fieldErrors?.description}
+            rows={3}
+            value={draft.description}
+            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            className={fieldClass}
+          />
+          <FormField label="Image" className="sm:col-span-2">
+            <ImageUploadZone
+              value={draft.image}
+              onUpload={uploadFile}
+              uploading={uploading}
+              isDragging={isDragging}
+              setIsDragging={setIsDragging}
+              fileInputRef={fileInputRef}
+              acceptedTypes={ACCEPTED_IMAGE_TYPES}
+              previewUrl={draft.image ? resolveImageUrl(draft.image) : null}
+              onClear={() => setDraft({ ...draft, image: "" })}
+              label="Image"
+              placeholder="Drag an image here, or click to upload"
+            />
+            <span className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
+              <UploadCloud className="h-3.5 w-3.5 shrink-0" />
+              Drag an image onto the box above, or use the picker. JPEG, PNG,
+              WebP, GIF or AVIF up to 5 MB. Uploads are converted to WebP.
+            </span>
+          </FormField>
+          <FormField label="Active" className="sm:col-span-2">
+            <div className="flex items-center gap-3">
               <input
+                id="pf-active"
                 type="checkbox"
-                checked={selected.size > 0 && selected.size === products.length}
-                onChange={selectAll}
-                className="h-4 w-4 rounded border-border"
+                checked={draft.isActive !== false}
+                onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500"
               />
-              Select all
-            </label>
-            <button
-              type="button"
-              disabled={selected.size === 0 || busy}
-              onClick={handleBulkActivate}
-              className={ghostButtonClass}
-            >
-              Activate
-            </button>
-            <button
-              type="button"
-              disabled={selected.size === 0 || busy}
-              onClick={handleBulkDeactivate}
-              className={ghostButtonClass}
-            >
-              Hide
-            </button>
-            <button
-              type="button"
-              disabled={selected.size === 0 || busy}
-              onClick={handleBulkDelete}
-              className={dangerButtonClass}
-            >
-              <Trash2 className="h-4 w-4" /> Delete
-            </button>
-          </div>
-        </div>
-
-        {selected.size > 0 && (
-          <p className="mt-2 text-xs text-text-muted">
-            {selected.size} product{selected.size === 1 ? "" : "s"} selected.
-          </p>
-        )}
-
-        <div className="mt-4 space-y-3">
-          {products.length === 0 ? (
-            <AdminEmpty title="No products yet" message="Add the first discovery to the shop." />
-          ) : (
-            visibleProducts.map((product) => (
-              <div
-                key={product._id}
-                className={`flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3 ${
-                  product.isActive === false ? "opacity-60" : ""
-                } ${selected.has(product._id) ? "ring-2 ring-primary-200" : ""}`}
-              >
-                <label className="flex min-w-0 cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(product._id)}
-                    onChange={() => toggleSelect(product._id)}
-                    // The wrapping label carries "in stock" and other
-                    // row text, which would otherwise become the
-                    // checkbox's accessible name.
-                    aria-label={`Select ${product.name}`}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  <img
-                    src={product.image}
-                    alt=""
-                    className={`h-12 w-12 shrink-0 rounded-lg object-cover ${
-                      product.isActive === false ? "grayscale" : ""
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-text">
-                      {product.name}
-                      {product.isActive === false && (
-                        <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 align-middle text-xs font-bold uppercase tracking-wide text-primary-900">
-                          Hidden
-                        </span>
-                      )}
-                    </p>
-                    <p className="truncate text-xs text-text-muted">
-                      {product.category || "Uncategorised"} · {formatBDT(product.price)} ·{" "}
-                      <span className={product.stock <= 0 ? "font-bold text-primary-700" : ""}>
-                        {product.stock} in stock
-                      </span>
-                    </p>
-                    <p className="truncate text-xs text-text-muted">
-                      {product.isActive === false ? (
-                        <span className="text-primary-700">Hidden from shop</span>
-                      ) : (
-                        <span className="text-secondary-1000">Live in shop</span>
-                      )}
-                    </p>
-                  </div>
-                </label>
-
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleToggleActive(product)}
-                    title={
-                      product.isActive === false ? "Activate product" : "Hide product"
-                    }
-                    className={ghostButtonClass}
-                  >
-                    {product.isActive === false ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <EyeOff className="h-4 w-4" />
-                    )}
-                    {product.isActive === false ? "Activate" : "Hide"}
-                  </button>
-                  <button type="button" onClick={() => openEdit(product)} className={ghostButtonClass}>
-                    <Pencil className="h-4 w-4" /> Edit
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => openStockAdjust(product)}
-                    className={ghostButtonClass}
-                  >
-                    <PackagePlus className="h-4 w-4" /> Stock
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleDelete(product)}
-                    className={dangerButtonClass}
-                  >
-                    <Trash2 className="h-4 w-4" /> Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          className="mt-4"
-        />
-      </section>
-
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
-          <div className="my-8 w-full max-w-2xl rounded-3xl bg-surface p-6 shadow-2xl">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black text-text">
-                {editingId ? "Edit product" : "New product"}
-              </h2>
-              <button
-                type="button"
-                onClick={closeForm}
-                aria-label="Close"
-                className="rounded-full p-2 text-text-muted transition hover:bg-primary-50 hover:text-primary-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <label htmlFor="pf-active" className="text-sm font-medium text-text">
+                Active
+              </label>
             </div>
-
-            <form onSubmit={handleSubmit} className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="block sm:col-span-2">
-                <span className={labelClass}>Name</span>
-                <input
-                  required
-                  minLength={2}
-                  maxLength={150}
-                  value={draft.name}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className={fieldClass}
-                />
-                {fieldErrors?.name && (
-                  <span className="mt-1 block text-xs font-semibold text-primary-700">
-                    {fieldErrors.name}
-                  </span>
-                )}
-              </label>
-
-              <label className="block sm:col-span-2">
-                <span className={labelClass}>Description</span>
-                <textarea
-                  rows={3}
-                  value={draft.description}
-                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  className={fieldClass}
-                />
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>Price (BDT)</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={draft.price}
-                  onChange={(e) => setDraft({ ...draft, price: e.target.value })}
-                  className={fieldClass}
-                />
-                {fieldErrors?.price && (
-                  <span className="mt-1 block text-xs font-semibold text-primary-700">
-                    {fieldErrors.price}
-                  </span>
-                )}
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>Buy Price (BDT)</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={draft.buyPrice}
-                  onChange={(e) => setDraft({ ...draft, buyPrice: e.target.value })}
-                  className={fieldClass}
-                />
-                {fieldErrors?.buyPrice && (
-                  <span className="mt-1 block text-xs font-semibold text-primary-700">
-                    {fieldErrors.buyPrice}
-                  </span>
-                )}
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>SKU</span>
-                <input
-                  required
-                  maxLength={50}
-                  value={draft.sku}
-                  onChange={(e) => setDraft({ ...draft, sku: e.target.value.toUpperCase() })}
-                  placeholder="TOY-001"
-                  className={fieldClass}
-                />
-                {fieldErrors?.sku && (
-                  <span className="mt-1 block text-xs font-semibold text-primary-700">
-                    {fieldErrors.sku}
-                  </span>
-                )}
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>Stock</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={draft.stock}
-                  onChange={(e) => setDraft({ ...draft, stock: e.target.value })}
-                  className={fieldClass}
-                />
-                {fieldErrors?.stock && (
-                  <span className="mt-1 block text-xs font-semibold text-primary-700">
-                    {fieldErrors.stock}
-                  </span>
-                )}
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>Category</span>
-                <select
-                  required
-                  value={effectiveCategoryId}
-                  onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
-                  className={fieldClass}
-                >
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>Age range</span>
-                <input
-                  maxLength={100}
-                  value={draft.age}
-                  onChange={(e) => setDraft({ ...draft, age: e.target.value })}
-                  placeholder="Ages 4–8"
-                  className={fieldClass}
-                />
-              </label>
-
-              <label className="block sm:col-span-2">
-                <span className={labelClass}>What's in the box</span>
-                <input
-                  maxLength={200}
-                  value={draft.includes}
-                  onChange={(e) => setDraft({ ...draft, includes: e.target.value })}
-                  placeholder="42 colourful wooden pieces"
-                  className={fieldClass}
-                />
-              </label>
-
-              <div className="block sm:col-span-2">
-                <span className={labelClass}>Image</span>
-                <div
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setIsDragging(true);
-                  }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                  className={`flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3 transition ${
-                    isDragging
-                      ? "border-primary-400 bg-primary-50"
-                      : "border-border bg-surface-soft"
-                  }`}
-                >
-                  <input
-                    value={draft.image}
-                    onChange={(e) => setDraft({ ...draft, image: e.target.value })}
-                    placeholder="/uploads/your-image.webp or https://..."
-                    className={`${fieldClass} min-w-48 flex-1`}
-                  />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
-                    onChange={handleUpload}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className={ghostButtonClass}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="h-4 w-4" />
-                    )}
-                    {uploading ? "Uploading..." : "Upload"}
-                  </button>
-                </div>
-                <span className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
-                  <UploadCloud className="h-3.5 w-3.5 shrink-0" />
-                  Drag an image onto the box above, or use the picker. JPEG, PNG,
-                  WebP, GIF or AVIF up to 5 MB. Uploads are converted to WebP.
-                </span>
-              </div>
-
-              {draft.image && (
-                <img
-                  src={resolveImageUrl(draft.image)}
-                  alt=""
-                  className="h-32 w-full rounded-xl object-cover sm:col-span-2"
-                />
-              )}
-
-              {formError && (
-                <p className="rounded-xl border border-primary-300 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-900 sm:col-span-2">
-                  {formError}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-3 sm:col-span-2">
-                <button type="submit" disabled={busy || uploading} className={primaryButtonClass}>
-                  <Save className="h-4 w-4" />
-                  {editingId ? "Save changes" : "Create product"}
-                </button>
-                <button type="button" onClick={closeForm} className={ghostButtonClass}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+          </FormField>
         </div>
-      )}
+      </AdminFormModal>
 
       {stockAdjustId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl bg-surface p-6 shadow-2xl">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black text-text">Adjust Stock</h2>
-              <button
-                type="button"
-                onClick={() => setStockAdjustId(null)}
-                aria-label="Close"
-                className="rounded-full p-2 text-text-muted transition hover:bg-primary-50 hover:text-primary-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleStockAdjust} className="mt-5 space-y-4">
-              <p className="text-sm text-text-muted">
-                Adjust stock level for the selected product. Use positive numbers to add stock,
-                negative numbers to remove stock (e.g., damaged goods).
-              </p>
-
-              <label className="block">
-                <span className={labelClass}>Adjustment (units)</span>
-                <input
-                  type="number"
-                  required
-                  step="1"
-                  value={stockAdjustQty}
-                  onChange={(e) => setStockAdjustQty(e.target.value)}
-                  placeholder="+5 or -2"
-                  className={fieldClass}
-                />
-              </label>
-
-              <label className="block">
-                <span className={labelClass}>Reason</span>
-                <input
-                  required
-                  maxLength={200}
-                  value={stockAdjustReason}
-                  onChange={(e) => setStockAdjustReason(e.target.value)}
-                  placeholder="Stock take, damaged goods, supplier return, etc."
-                  className={fieldClass}
-                />
-              </label>
-
-              {stockAdjustError && (
-                <p className="rounded-xl border border-primary-300 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-900">
-                  {stockAdjustError}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-3">
-                <button type="submit" disabled={adjustStock.isPending} className={primaryButtonClass}>
-                  <Save className="h-4 w-4" />
-                  {adjustStock.isPending ? "Adjusting..." : "Apply Adjustment"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStockAdjustId(null)}
-                  className={ghostButtonClass}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AdminFormModal
+          isOpen={true}
+          onClose={() => setStockAdjustId(null)}
+          title="Adjust Stock"
+          sizeClass="max-w-md"
+          busy={adjustStock.isPending}
+          onSubmit={handleStockAdjust}
+          submitLabel="Apply Adjustment"
+        >
+          <p className="text-sm text-text-muted">
+            Adjust stock level for the selected product. Use positive numbers to add stock,
+            negative numbers to remove stock (e.g., damaged goods).
+          </p>
+          <FormFieldInput
+            label="Adjustment (units)"
+            htmlFor="stock-adjust-qty"
+            required
+            type="number"
+            step="1"
+            value={stockAdjustQty}
+            onChange={(e) => setStockAdjustQty(e.target.value)}
+            placeholder="+5 or -2"
+            className={fieldClass}
+          />
+          <FormFieldInput
+            label="Reason"
+            htmlFor="stock-adjust-reason"
+            required
+            maxLength={200}
+            value={stockAdjustReason}
+            onChange={(e) => setStockAdjustReason(e.target.value)}
+            placeholder="Stock take, damaged goods, supplier return, etc."
+            className={fieldClass}
+          />
+          {stockAdjustError && <FormError message={stockAdjustError} />}
+        </AdminFormModal>
       )}
     </div>
   );

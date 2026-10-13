@@ -27,6 +27,8 @@ import ExpenseCategories from "./Backend/Pages/ExpenseCategories/ExpenseCategori
 import Expenses from "./Backend/Pages/Expenses/Expenses";
 import Analytics from "./Backend/Pages/Analytics/Analytics";
 import BackupRestore from "./Backend/Pages/BackupRestore/BackupRestore";
+import Templates from "./Backend/Pages/Templates/Templates";
+import Customers from "./Backend/Pages/Customers/Customers";
 
 function App() {
   return (
@@ -61,6 +63,8 @@ function App() {
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="users" element={<Users />} />
                 <Route path="backup" element={<BackupRestore />} />
+                <Route path="templates" element={<Templates />} />
+                <Route path="customers" element={<Customers />} />
               </Route>
 
               <Route path="/" element={<Layout />}>

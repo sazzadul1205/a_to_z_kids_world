@@ -1,13 +1,24 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit3, Tag } from "lucide-react";
+import { Plus, Tag } from "lucide-react";
 import { expensesApi, expenseCategoriesApi } from "../../../Frontend/lib/api";
 import { formatBDT } from "../../../Frontend/lib/currency";
 import { confirmDialog, toastSuccess, toastError } from "../../../Frontend/lib/swal";
-import Pagination from "../../../Frontend/Components/Pagination";
 import { usePagination } from "../../../Frontend/hooks/usePagination";
-import { AdminEmpty, AdminError, AdminHeader, AdminLoader, StatusPill, dangerButtonClass, ghostButtonClass, primaryButtonClass } from "../../admin-ui";
-import ExpenseFormModal from "./ExpenseFormModal";
+import {
+  AdminError,
+  AdminHeader,
+  AdminLoader,
+  AdminFormModal,
+  AdminDataTable,
+  AdminRowActions,
+  StatusPill,
+  FormFieldInput,
+  FormFieldSelect,
+  FormFieldTextarea,
+  fieldClass,
+  primaryButtonClass,
+} from "../../admin-ui";
 
 const PAYMENT_METHODS = ["cash", "bank", "card", "other"];
 const emptyDraft = { amount: "", categoryId: "", date: "", paymentMethod: "cash", notes: "" };
@@ -32,7 +43,7 @@ const Expenses = () => {
   });
 
   const expenses = data?.expenses || data || [];
-  const { page, setPage, pageSize, total, totalPages, window: visibleExpenses } = usePagination(expenses);
+  const { page, setPage, pageSize, totalPages, window: visibleExpenses } = usePagination(expenses);
   const client = useQueryClient();
 
   const createMutation = useMutation({
@@ -47,6 +58,8 @@ const Expenses = () => {
     mutationFn: (id) => expensesApi.remove(id),
     onSuccess: () => { client.invalidateQueries({ queryKey: ["expenses"] }); },
   });
+
+  const closeForm = () => setFormOpen(false);
 
   const openCreate = () => {
     setDraft(emptyDraft);
@@ -69,8 +82,6 @@ const Expenses = () => {
     setFieldErrors(null);
     setFormOpen(true);
   };
-
-  const closeForm = () => setFormOpen(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,6 +126,50 @@ const Expenses = () => {
 
   if (status === "loading") return <AdminLoader label="Loading expenses..." />;
 
+  const columns = [
+    {
+      key: "category",
+      render: (expense) => (
+        <div className="flex items-center gap-4">
+          <Tag className="h-4 w-4 text-text-muted" />
+          <div>
+            <p className="font-bold text-text">{expense.category?.name || "Uncategorized"}</p>
+            <p className="text-xs text-text-muted">
+              {expense.vendor || ""} · {new Date(expense.date).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+      ),
+      className: "flex-1 min-w-0",
+    },
+    {
+      key: "amount",
+      render: (expense) => (
+        <span className="font-semibold text-text">{formatBDT(expense.amount || 0)}</span>
+      ),
+      className: "w-40 text-right",
+    },
+    {
+      key: "paymentMethod",
+      render: (expense) => <StatusPill value={expense.paymentMethod || "cash"} />,
+      className: "w-32",
+    },
+  ];
+
+  const getRowKey = (expense) => expense._id;
+
+  const rowActions = (expense) => (
+    <AdminRowActions
+      onEdit={() => openEdit(expense)}
+      onDelete={() => handleDelete(expense)}
+      disabled={deleteMutation.isPending}
+      editLabel="Edit"
+      deleteLabel="Delete"
+    />
+  );
+
+  const handlePageChange = (newPage) => setPage(newPage);
+
   return (
     <div className="space-y-8">
       <AdminHeader section="Accounting" title="Expenses">
@@ -125,71 +180,97 @@ const Expenses = () => {
 
       {error && <AdminError message={error.message} />}
 
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h2 className="text-lg font-black text-text">
-          Recent expenses <span className="text-text-muted">({total || 0})</span>
-        </h2>
-        <div className="mt-4 space-y-3">
-          {expenses.length === 0 ? (
-            <AdminEmpty title="No expenses yet" message="Create one above." />
-          ) : (
-            visibleExpenses.map((expense) => (
-              <div
-                key={expense._id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
-              >
-                <div className="flex items-center gap-4">
-                  <Tag className="h-4 w-4 text-text-muted" />
-                  <div>
-                    <p className="font-bold text-text">{expense.category?.name || "Uncategorized"}</p>
-                    <p className="text-xs text-text-muted">
-                      {expense.vendor || ""} · {new Date(expense.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-semibold text-text">{formatBDT(expense.amount || 0)}</span>
-                  <StatusPill value={expense.paymentMethod || "cash"} />
-                  <div className="flex gap-1">
-                    <button type="button" onClick={() => openEdit(expense)} className={ghostButtonClass}>
-                      <Edit3 className="h-4 w-4" />
-                    </button>
-                    <button type="button" onClick={() => handleDelete(expense)} disabled={deleteMutation.isPending} className={dangerButtonClass}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      <AdminDataTable
+        title="Expenses"
+        subtitle="Accounting"
+        items={visibleExpenses}
+        columns={columns}
+        status={status}
+        error={error}
+        onReload={() => client.invalidateQueries({ queryKey: ["expenses"] })}
+        emptyTitle="No expenses yet"
+        emptyMessage="Create one above."
+        rowActions={rowActions}
+        getRowKey={getRowKey}
+        pagination={{ page, pageSize, total: expenses.length, totalPages }}
+        onPaginationChange={handlePageChange}
+      />
 
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          className="mt-4"
-        />
-      </section>
-
-      <ExpenseFormModal
+      <AdminFormModal
         isOpen={isFormOpen}
         onClose={closeForm}
-        editingId={editingId}
-        draft={draft}
-        setDraft={setDraft}
-        setFormError={setFormError}
-        setFieldErrors={setFieldErrors}
-        fieldErrors={fieldErrors}
-        formError={formError}
+        title={editingId ? "Edit Expense" : "New Expense"}
+        sizeClass="max-w-lg"
         busy={createMutation.isPending || updateMutation.isPending}
-        categories={categories || []}
-        paymentMethods={PAYMENT_METHODS}
-        handleSubmit={handleSubmit}
+        onSubmit={handleSubmit}
+        formError={formError}
         submitLabel={editingId ? "Save Changes" : "Create Expense"}
-      />
+      >
+        <FormFieldInput
+          label="Amount (BDT)"
+          htmlFor="ex-amount"
+          required
+          error={fieldErrors?.amount}
+          type="number"
+          min="0"
+          step="0.01"
+          value={draft.amount}
+          onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
+          className={fieldClass}
+        />
+        <FormFieldSelect
+          label="Category"
+          htmlFor="ex-category"
+          required
+          error={fieldErrors?.categoryId}
+          value={draft.categoryId}
+          onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
+          className={fieldClass}
+        >
+          <option value="">Select a category</option>
+          {(categories || []).map((category) => (
+            <option key={category._id} value={category._id}>
+              {category.name}
+            </option>
+          ))}
+        </FormFieldSelect>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormFieldInput
+            label="Date"
+            htmlFor="ex-date"
+            required
+            error={fieldErrors?.date}
+            type="date"
+            value={draft.date}
+            onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+            className={fieldClass}
+          />
+          <FormFieldSelect
+            label="Payment method"
+            htmlFor="ex-payment"
+            error={fieldErrors?.paymentMethod}
+            value={draft.paymentMethod}
+            onChange={(e) => setDraft({ ...draft, paymentMethod: e.target.value })}
+            className={fieldClass}
+          >
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {method.charAt(0).toUpperCase() + method.slice(1)}
+              </option>
+            ))}
+          </FormFieldSelect>
+        </div>
+        <FormFieldTextarea
+          label="Notes"
+          htmlFor="ex-notes"
+          rows={2}
+          maxLength={500}
+          value={draft.notes}
+          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+          placeholder="Optional"
+          className={fieldClass}
+        />
+      </AdminFormModal>
     </div>
   );
 };

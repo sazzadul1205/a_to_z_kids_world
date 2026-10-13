@@ -1,20 +1,27 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { expenseCategoriesApi } from "../../../Frontend/lib/api";
 import { confirmDialog, toastSuccess, toastError } from "../../../Frontend/lib/swal";
-import Pagination from "../../../Frontend/Components/Pagination";
 import { usePagination } from "../../../Frontend/hooks/usePagination";
 import {
-  AdminEmpty,
   AdminError,
   AdminHeader,
   AdminLoader,
+  AdminFormModal,
+  AdminDataTable,
+  AdminRowActions,
+  FormField,
+  FormFieldInput,
+  FormFieldTextarea,
+  FormFieldSelect,
+  fieldClass,
   primaryButtonClass,
 } from "../../admin-ui";
-import ExpenseCategoryFormModal from "./ExpenseCategoryFormModal";
 
 const emptyDraft = { name: "", description: "", color: "#3B82F6", icon: "🧾", isActive: true, sortOrder: 0 };
+
+const icons = ["🧾", "🛒", "🏠", "🚚", "📦", "💰", "💳", "🏦", "🧮", "📊", "🎯", "🎁", "🏆", "📈", "🔧", "🌐", "⚡", "🔥", "💝", "⭐"];
 
 const ExpenseCategories = () => {
   const [draft, setDraft] = useState(emptyDraft);
@@ -45,7 +52,9 @@ const ExpenseCategories = () => {
   });
 
   const categories = Array.isArray(data) ? data : (data?.expenseCategories || data || []);
-  const { page, setPage, pageSize, total, totalPages, window: visibleCategories } = usePagination(categories);
+  const { page, setPage, pageSize, totalPages, window: visibleCategories } = usePagination(categories);
+
+  const closeForm = () => setFormOpen(false);
 
   const openCreate = () => {
     setDraft(emptyDraft);
@@ -69,8 +78,6 @@ const ExpenseCategories = () => {
     setFieldErrors(null);
     setFormOpen(true);
   };
-
-  const closeForm = () => setFormOpen(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,6 +127,56 @@ const ExpenseCategories = () => {
 
   if (status === "loading") return <AdminLoader label="Loading expense categories..." />;
 
+  const columns = [
+    {
+      key: "icon",
+      render: (category) => (
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg"
+          style={{ backgroundColor: `${category.color || "#CBD5E1"}20` }}
+        >
+          {category.icon || "🧾"}
+        </span>
+      ),
+      className: "",
+    },
+    {
+      key: "name",
+      render: (category) => (
+        <div>
+          <p className="font-bold text-text">{category.name}</p>
+          <p className="text-xs text-text-muted">
+            {category.description || "No description"} · {category.sortOrder || 0}
+          </p>
+        </div>
+      ),
+      className: "flex-1 min-w-0",
+    },
+    {
+      key: "isActive",
+      render: (category) => (
+        <span className={category.isActive !== false ? "text-xs text-primary-700" : "text-xs text-text-muted"}>
+          {category.isActive !== false ? "Active" : "Inactive"}
+        </span>
+      ),
+      className: "w-24",
+    },
+  ];
+
+  const getRowKey = (category) => category._id;
+
+  const rowActions = (category) => (
+    <AdminRowActions
+      onEdit={() => openEdit(category)}
+      onDelete={() => handleDelete(category)}
+      disabled={deleteMutation.isPending}
+      editLabel="Edit"
+      deleteLabel="Delete"
+    />
+  );
+
+  const handlePageChange = (newPage) => setPage(newPage);
+
   return (
     <div className="space-y-8">
       <AdminHeader section="Accounting" title="Expense Categories">
@@ -130,72 +187,108 @@ const ExpenseCategories = () => {
 
       {error && <AdminError message={error.message} onRetry={refetch} />}
 
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h2 className="text-lg font-black text-text">
-          All expense categories <span className="text-text-muted">({total || 0})</span>
-        </h2>
-        <div className="mt-4 space-y-3">
-          {categories.length === 0 ? (
-            <AdminEmpty title="No expense categories yet" message="Create the first one above." />
-          ) : (
-            visibleCategories.map((category) => (
-              <div
-                key={category._id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
-              >
-                <div className="flex items-center gap-4">
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg"
-                    style={{ backgroundColor: `${category.color || "#CBD5E1"}20` }}
-                  >
-                    {category.icon || "🧾"}
-                  </span>
-                  <div>
-                    <p className="font-bold text-text">{category.name}</p>
-                    <p className="text-xs text-text-muted">
-                      {category.description || "No description"} · {category.sortOrder || 0}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={category.isActive !== false ? "text-xs text-primary-700" : "text-xs text-text-muted"}>
-                    {category.isActive !== false ? "Active" : "Inactive"}
-                  </span>
-                  <button type="button" onClick={() => openEdit(category)} className="p-1 text-text-muted hover:text-text">
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={() => handleDelete(category)} className="p-1 text-text-muted hover:text-primary-700">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      <AdminDataTable
+        title="Expense Categories"
+        subtitle="Accounting"
+        items={visibleCategories}
+        columns={columns}
+        status={status}
+        error={error}
+        onReload={refetch}
+        emptyTitle="No expense categories yet"
+        emptyMessage="Create the first one above."
+        rowActions={rowActions}
+        getRowKey={getRowKey}
+        pagination={{ page, pageSize, total: categories.length, totalPages }}
+        onPaginationChange={handlePageChange}
+      />
 
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          className="mt-4"
-        />
-      </section>
-
-      <ExpenseCategoryFormModal
+      <AdminFormModal
         isOpen={isFormOpen}
         onClose={closeForm}
-        editingId={editingId}
-        draft={draft}
-        setDraft={setDraft}
-        setFormError={setFormError}
-        setFieldErrors={setFieldErrors}
-        fieldErrors={fieldErrors}
-        formError={formError}
+        title={editingId ? "Edit Expense Category" : "New Expense Category"}
+        sizeClass="max-w-lg"
         busy={createMutation.isPending || updateMutation.isPending}
-        handleSubmit={handleSubmit}
-      />
+        onSubmit={handleSubmit}
+        formError={formError}
+        submitLabel={editingId ? "Save Changes" : "Create Category"}
+      >
+        <FormFieldInput
+          label="Name"
+          htmlFor="ec-name"
+          required
+          error={fieldErrors?.name}
+          value={draft.name}
+          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          minLength={2}
+          maxLength={100}
+          placeholder="e.g. Marketing, Rent, Utilities"
+          autoFocus
+          className={fieldClass}
+        />
+        <FormFieldTextarea
+          label="Description"
+          htmlFor="ec-description"
+          error={fieldErrors?.description}
+          rows={2}
+          maxLength={500}
+          value={draft.description}
+          onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+          placeholder="Optional description"
+          className={fieldClass}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormFieldInput
+            label="Color"
+            htmlFor="ec-color"
+            error={fieldErrors?.color}
+            maxLength={40}
+            value={draft.color}
+            onChange={(e) => setDraft({ ...draft, color: e.target.value })}
+            placeholder="#3B82F6"
+            className={fieldClass}
+          />
+          <FormFieldSelect
+            label="Icon"
+            htmlFor="ec-icon"
+            error={fieldErrors?.icon}
+            value={draft.icon}
+            onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
+            className={fieldClass}
+          >
+            {icons.map((icon) => (
+              <option key={icon} value={icon}>
+                {icon}
+              </option>
+            ))}
+          </FormFieldSelect>
+        </div>
+        <FormField label="Active" className="sm:col-span-2">
+          <div className="flex items-center gap-3">
+            <input
+              id="ec-isActive"
+              type="checkbox"
+              checked={draft.isActive !== false}
+              onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+              className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500"
+            />
+            <label htmlFor="ec-isActive" className="text-sm font-medium text-text">
+              Active
+            </label>
+          </div>
+        </FormField>
+        <FormFieldInput
+          label="Sort order"
+          htmlFor="ec-sort"
+          error={fieldErrors?.sortOrder}
+          type="number"
+          min="0"
+          step="1"
+          value={draft.sortOrder}
+          onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })}
+          className={fieldClass}
+        />
+      </AdminFormModal>
     </div>
   );
 };

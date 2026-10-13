@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 import {
   Boxes,
   Database,
+  FileText,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -15,6 +16,7 @@ import {
   Tags,
   Truck,
   UserCog,
+  Users,
   Warehouse,
 } from "lucide-react";
 import { useAuth } from "../Frontend/context/auth/useAuth";
@@ -32,6 +34,8 @@ const NAV_ITEMS = [
   { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
   { to: "/admin/analytics", label: "Analytics", icon: PieChart },
   { to: "/admin/backup", label: "Backup & Restore", icon: Database },
+  { to: "/admin/templates", label: "Templates", icon: FileText },
+  { to: "/admin/customers", label: "Customers", icon: Users },
   { to: "/admin/users", label: "Staff", icon: UserCog },
 ];
 

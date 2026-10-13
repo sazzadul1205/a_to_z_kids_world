@@ -4,6 +4,7 @@ import {
   authApi,
   backupApi,
   categoriesApi,
+  customersApi,
   inventoryApi,
   logsApi,
   ordersApi,
@@ -335,6 +336,32 @@ export function useLogsQuery() {
   return useQuery({
     queryKey: queryKeys.logs,
     queryFn: ({ signal }) => logsApi.list(signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useCustomersQuery(params) {
+  return useQuery({
+    queryKey: [...queryKeys.customers, params],
+    queryFn: ({ signal }) => customersApi.list(params, signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
+export function useCustomerSearchQuery(query, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.customers, "search", query],
+    queryFn: ({ signal }) => customersApi.search(query, signal),
+    enabled: enabled && query.length >= 1,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCustomerDetailQuery(phone) {
+  return useQuery({
+    queryKey: queryKeys.customerDetail(phone),
+    queryFn: ({ signal }) => customersApi.getDetail(phone, signal),
+    enabled: !!phone,
     staleTime: ADMIN_STALE_TIME,
   });
 }

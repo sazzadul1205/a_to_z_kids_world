@@ -165,6 +165,20 @@ export const usersApi = {
   remove: (id) => api.delete(`/users/${id}`),
 };
 
+export const customersApi = {
+  list: (params, signal) => {
+    const queryParams = { ...(params || {}), limit: params?.limit || 100 };
+    return api.get("/customers", { params: queryParams, signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.customers)) {
+        return res.customers;
+      }
+      return res;
+    });
+  },
+  search: (query, signal) => api.get("/customers/search", { params: { q: query }, signal }),
+  getDetail: (phone, signal) => api.get(`/customers/${encodeURIComponent(phone)}`, { signal }),
+};
+
 // Store-wide settings. The read is public (the storefront
 // needs it to decide whether the review section renders);
 // only the write is staff-only, which the API enforces.
@@ -256,4 +270,16 @@ export const logsApi = {
   list: (signal) => api.get("/logs", { signal }),
   read: (filename, params, signal) => api.get(`/logs/${filename}`, { params, signal }),
   clear: () => api.delete("/logs"),
+};
+
+export const templatesApi = {
+  // Public - get compiled HTML for printing
+  getCompiled: (type, data) => api.post(`/templates/receipts/${type}`, data, { responseType: "text" }),
+  // Admin
+  list: (signal) => api.get("/templates", { signal }),
+  get: (id, signal) => api.get(`/templates/${id}`, { signal }),
+  create: (data) => api.post("/templates", data),
+  update: (id, data) => api.patch(`/templates/${id}`, data),
+  remove: (id) => api.delete(`/templates/${id}`),
+  preview: (id, data) => api.post(`/templates/${id}/preview`, data, { responseType: "text" }),
 };

@@ -45,6 +45,14 @@ export function useOrdersQuery() {
   });
 }
 
+export function useOrderHistoryQuery(params) {
+  return useQuery({
+    queryKey: queryKeys.orderHistory(params),
+    queryFn: ({ signal }) => ordersApi.history(params, signal),
+    staleTime: ADMIN_STALE_TIME,
+  });
+}
+
 export function useUsersQuery() {
   return useQuery({
     queryKey: queryKeys.users,

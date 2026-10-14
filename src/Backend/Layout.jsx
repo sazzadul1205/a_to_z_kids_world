@@ -40,6 +40,7 @@ const NAV_GROUPS = [
     label: "Selling",
     items: [
       { to: "/admin/pos", label: "POS / Sales", icon: ShoppingCart },
+      { to: "/admin/sales-history", label: "Sales History", icon: ReceiptText },
       { to: "/admin/orders", label: "Orders", icon: Boxes },
       { to: "/admin/customers", label: "Customers", icon: Users },
     ],

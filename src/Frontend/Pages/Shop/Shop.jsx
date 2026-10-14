@@ -3,6 +3,7 @@ import { AlertTriangle, Filter, RefreshCw, RotateCcw, Search, SlidersHorizontal,
 import { useNavigate, useSearchParams } from "react-router";
 import { useLanguage } from "../../context/language/useLanguage";
 import ProductsSection from "../Home/sections/ProductsSection";
+import RecentOrdersSection from "../Home/sections/RecentOrdersSection";
 import ProductModal from "../Home/sections/ProductModal";
 import { useCart } from "../../context/cart/useCart";
 import { useCartNotice } from "../../context/cart/useCartNotice";
@@ -218,6 +219,7 @@ const Shop = () => {
           </div>
         </div>
       </div>
+      <RecentOrdersSection />
       <ProductModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}

@@ -11,6 +11,8 @@ export const queryKeys = {
   settings: ["settings"],
   reviewSettings: ["settings", "reviews"],
   orders: ["orders"],
+  orderHistory: (params) => ["orders", "history", params],
+  recentOrders: ["orders", "recent"],
   users: ["users"],
   session: ["session"],
   inventory: ["inventory"],
@@ -32,3 +34,7 @@ export const CATALOG_STALE_TIME = 60_000;
 // Reviews and orders are moderation surfaces where a stale list means editing
 // the wrong record, so they are always refetched on mount.
 export const ADMIN_STALE_TIME = 0;
+
+// Recent orders are a public trust signal, not a moderation surface, so a
+// short cache is fine: it keeps the section fresh without hammering the API.
+export const RECENT_ORDERS_STALE_TIME = 60_000;

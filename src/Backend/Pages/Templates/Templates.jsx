@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Save, Eye, Plus, X, Copy } from "lucide-react";
+import { Save, Eye, X, Copy } from "lucide-react";
 import { templatesApi } from "../../../Frontend/lib/api";
-import { confirmDialog, toastSuccess, toastError } from "../../../Frontend/lib/swal";
+import { toastSuccess, toastError } from "../../../Frontend/lib/swal";
 import {
   AdminError,
   AdminLoader,
@@ -9,9 +9,7 @@ import {
   AdminFormModal,
   AdminDataTable,
   AdminRowActions,
-  FormField,
   FormFieldInput,
-  FormFieldSelect,
   FormFieldTextarea,
   fieldClass,
   primaryButtonClass,
@@ -23,13 +21,14 @@ const TEMPLATE_TYPES = [
   { value: "a4-standard", label: "A4 Standard" },
 ];
 
+const templateLabel = (name) =>
+  TEMPLATE_TYPES.find((type) => type.value === name)?.label || name;
+
 const emptyDraft = {
-  name: "",
   header_html: "",
   footer_html: "",
   body_template: "",
   css_styles: "",
-  is_active: true,
 };
 
 const Templates = () => {
@@ -50,7 +49,9 @@ const Templates = () => {
     setError(null);
     try {
       const data = await templatesApi.list();
-      setTemplates(data);
+      setTemplates(data.filter((template) =>
+        TEMPLATE_TYPES.some((type) => type.value === template.name),
+      ));
       setStatus("idle");
     } catch (err) {
       setError(err);
@@ -72,23 +73,13 @@ const Templates = () => {
     setFieldErrors(null);
   };
 
-  const openCreate = () => {
-    setEditingId(null);
-    setDraft(emptyDraft);
-    setFormError(null);
-    setFieldErrors(null);
-    setIsFormOpen(true);
-  };
-
   const openEdit = (template) => {
     setEditingId(template._id);
     setDraft({
-      name: template.name,
       header_html: template.header_html,
       footer_html: template.footer_html,
       body_template: template.body_template,
       css_styles: template.css_styles,
-      is_active: template.is_active,
     });
     setFormError(null);
     setFieldErrors(null);
@@ -103,21 +94,13 @@ const Templates = () => {
 
     try {
       const payload = {
-        name: draft.name,
         header_html: draft.header_html,
         footer_html: draft.footer_html,
-        body_template: draft.body_template,
         css_styles: draft.css_styles,
-        is_active: draft.is_active,
       };
 
-      if (editingId) {
-        await templatesApi.update(editingId, payload);
-        toastSuccess("Template updated");
-      } else {
-        await templatesApi.create(payload);
-        toastSuccess("Template created");
-      }
+      await templatesApi.update(editingId, payload);
+      toastSuccess("Template updated");
       closeForm();
       loadTemplates();
     } catch (err) {
@@ -128,29 +111,12 @@ const Templates = () => {
     }
   };
 
-  const handleDelete = async (template) => {
-    const confirmed = await confirmDialog({
-      title: `Delete "${template.name}"?`,
-      text: "This cannot be undone.",
-      confirmText: "Yes, delete",
-      danger: true,
-    });
-    if (!confirmed) return;
-
-    try {
-      await templatesApi.remove(template._id);
-      toastSuccess("Template deleted");
-      loadTemplates();
-    } catch (err) {
-      toastError(err.message);
-    }
-  };
-
   const handlePreview = async () => {
     setBusy(true);
     try {
       const sampleData = getSampleData();
-      const html = await templatesApi.preview(draft.name, sampleData);
+      const template = templates.find((item) => item._id === editingId);
+      const html = await templatesApi.preview(template?.name, sampleData);
       setPreviewHtml(html);
       setPreviewOpen(true);
     } catch (err) {
@@ -167,7 +133,7 @@ const Templates = () => {
       key: "name",
       render: (t) => (
         <div className="min-w-0">
-          <p className="truncate font-bold text-text">{t.name}</p>
+          <p className="truncate font-bold text-text">{templateLabel(t.name)}</p>
           <p className="truncate text-xs text-text-muted">
             v{t.version} · {t.is_active ? "Active" : "Inactive"}
           </p>
@@ -191,20 +157,14 @@ const Templates = () => {
   const rowActions = (t) => (
     <AdminRowActions
       onEdit={() => openEdit(t)}
-      onDelete={() => handleDelete(t)}
       disabled={busy}
       editLabel="Edit"
-      deleteLabel="Delete"
     />
   );
 
   return (
     <div className="space-y-8">
-      <AdminHeader section="Settings" title="Receipt Templates">
-        <button onClick={openCreate} className={primaryButtonClass}>
-          <Plus className="h-4 w-4" /> New template
-        </button>
-      </AdminHeader>
+      <AdminHeader section="Settings" title="Receipt Formats" />
 
       {error && <AdminError message={error.message} onRetry={loadTemplates} />}
 
@@ -215,8 +175,8 @@ const Templates = () => {
         status={status}
         error={error}
         onReload={loadTemplates}
-        emptyTitle="No templates yet"
-        emptyMessage="Create your first receipt template above."
+        emptyTitle="Receipt formats are not available"
+        emptyMessage="The POS Machine and A4 receipt formats could not be loaded."
         rowActions={rowActions}
         getRowKey={getRowKey}
       />
@@ -224,52 +184,22 @@ const Templates = () => {
       <AdminFormModal
         isOpen={isFormOpen}
         onClose={closeForm}
-        title={editingId ? "Edit Template" : "New Template"}
+        title={`Edit ${templateLabel(templates.find((item) => item._id === editingId)?.name || "")}`}
         sizeClass="max-w-4xl"
         scrollable
         busy={busy}
         onSubmit={handleSubmit}
         formError={formError}
-        submitLabel={editingId ? "Save Changes" : "Create Template"}
+        submitLabel="Save Changes"
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormFieldInput
-            label="Template Name (ID)"
-            htmlFor="tpl-name"
-            required
-            error={fieldErrors?.name}
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            disabled={editingId}
-            placeholder="e.g. pos-thermal, a4-standard"
+            label="Receipt format"
+            htmlFor="tpl-type"
+            value={templateLabel(templates.find((item) => item._id === editingId)?.name || "")}
+            readOnly
             className={fieldClass}
           />
-          <FormFieldSelect
-            label="Type"
-            htmlFor="tpl-type"
-            error={fieldErrors?.name}
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            className={fieldClass}
-          >
-            {TEMPLATE_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>{type.label}</option>
-            ))}
-          </FormFieldSelect>
-          <FormField label="Active" className="sm:col-span-2">
-            <div className="flex items-center gap-3">
-              <input
-                id="tpl-active"
-                type="checkbox"
-                checked={draft.is_active}
-                onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })}
-                className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500"
-              />
-              <label htmlFor="tpl-active" className="text-sm font-medium text-text">
-                Active
-              </label>
-            </div>
-          </FormField>
         </div>
 
         <div className="mt-4 border-t border-border pt-4">
@@ -307,23 +237,19 @@ const Templates = () => {
         </div>
 
         <div className="border-t border-border pt-4">
-          <h3 className="text-lg font-semibold text-text mb-3">Body Template (Fixed - Developer Only)</h3>
+          <h3 className="text-lg font-semibold text-text mb-3">Receipt fields (fixed)</h3>
           <FormFieldTextarea
             label="Body"
             htmlFor="tpl-body"
             error={fieldErrors?.body_template}
             value={draft.body_template}
-            onChange={(e) => setDraft({ ...draft, body_template: e.target.value })}
             rows={10}
-            placeholder="Body template with Handlebars expressions"
             className={`${fieldClass} font-mono text-sm`}
-            readOnly={!editingId}
+            readOnly
           />
-          {!editingId && (
-            <p className="mt-1 text-xs text-text-muted">
-              Body template cannot be modified via API. Create a new template variant instead.
-            </p>
-          )}
+          <p className="mt-1 text-xs text-text-muted">
+            Each receipt has a fixed set of fields. The header, footer, and layout styling can be customized below.
+          </p>
         </div>
 
         <div className="border-t border-border pt-4">
@@ -346,7 +272,7 @@ const Templates = () => {
           </button>
           <button type="submit" disabled={busy} className={primaryButtonClass}>
             <Save className="h-4 w-4" />
-            {busy ? "Saving..." : (editingId ? "Save Changes" : "Create Template")}
+            {busy ? "Saving..." : "Save Changes"}
           </button>
           <button type="button" onClick={closeForm} className={ghostButtonClass}>
             Cancel

@@ -2,7 +2,24 @@ import { useEffect, useState } from "react";
 import { Printer, X, AlertTriangle } from "lucide-react";
 import { templatesApi } from "../../lib/api";
 
-const THERMAL_WIDTH = 320;
+const THERMAL_WIDTH = 302;
+
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+
+const getDiscountLabel = (sale) => {
+  if (sale.discountType !== "percentage") return "";
+  const storedValue = Number(sale.discountValue) || 0;
+  const subtotal = Number(sale.subtotal) || 0;
+  const value = storedValue || (subtotal > 0 ? (Number(sale.discount) / subtotal) * 100 : 0);
+  return value > 0 ? `(${Number(value.toFixed(2))}%)` : "";
+};
 
 const FALLBACK_THERMAL_HTML = (sale) => `
 <!DOCTYPE html>
@@ -15,7 +32,8 @@ const FALLBACK_THERMAL_HTML = (sale) => `
       body { margin: 0; padding: 0; }
       .no-print { display: none !important; }
     }
-    body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; width: 320px; margin: 0 auto; padding: 16px; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; width: 80mm; max-width: 100%; margin: 0 auto; padding: 4mm; }
     .center { text-align: center; }
     .bold { font-weight: bold; }
     .line { border-top: 1px dashed #000; margin: 8px 0; }
@@ -32,36 +50,36 @@ const FALLBACK_THERMAL_HTML = (sale) => `
     <p class="text-[11px] text-gray-600">Dhaka, Bangladesh</p>
     <p class="text-[11px] text-gray-600">+880 1XXX XXXXXX</p>
   </div>
-  <div class="line" />
+  <div class="line"></div>
   <div class="mb-3">
-    <p class="text-[11px]"><span class="bold">Sale #:</span> ${sale.saleNumber || sale.id?.slice(-8).toUpperCase()}</p>
+    <p class="text-[11px]"><span class="bold">Sale #:</span> ${escapeHtml(sale.saleNumber || sale.id?.slice(-8).toUpperCase())}</p>
     <p class="text-[11px]"><span class="bold">Date:</span> ${new Date(sale.createdAt || sale.date).toLocaleString("en-GB", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}</p>
-    <p class="text-[11px]"><span class="bold">Cashier:</span> ${sale.cashier || "POS User"}</p>
-    ${sale.customerName ? `<p class="text-[11px]"><span class="bold">Customer:</span> ${sale.customerName}</p>` : ""}
-    ${sale.customerPhone ? `<p class="text-[11px]"><span class="bold">Phone:</span> ${sale.customerPhone}</p>` : ""}
-    ${sale.customerEmail ? `<p class="text-[11px]"><span class="bold">Email:</span> ${sale.customerEmail}</p>` : ""}
-    ${sale.customerAddress ? `<p class="text-[11px]"><span class="bold">Address:</span> ${sale.customerAddress}</p>` : ""}
-    <p class="text-[11px]"><span class="bold">Payment:</span> ${sale.paymentMethod || "Cash"}</p>
-    ${sale.discount && sale.discount > 0 ? `<p class="text-[11px] text-red-600"><span class="bold">Discount:</span> -৳${sale.discount.toLocaleString("en-BD",{minimumFractionDigits:2})} ${sale.discountType === "percentage" ? `(${sale.discountValue}%)` : ""}</p>` : ""}
+    <p class="text-[11px]"><span class="bold">Cashier:</span> ${escapeHtml(sale.cashier || "POS User")}</p>
+    ${sale.customerName ? `<p class="text-[11px]"><span class="bold">Customer:</span> ${escapeHtml(sale.customerName)}</p>` : ""}
+    ${sale.customerPhone ? `<p class="text-[11px]"><span class="bold">Phone:</span> ${escapeHtml(sale.customerPhone)}</p>` : ""}
+    ${sale.customerEmail ? `<p class="text-[11px]"><span class="bold">Email:</span> ${escapeHtml(sale.customerEmail)}</p>` : ""}
+    ${sale.customerAddress ? `<p class="text-[11px]"><span class="bold">Address:</span> ${escapeHtml(sale.customerAddress)}</p>` : ""}
+    <p class="text-[11px]"><span class="bold">Payment:</span> ${escapeHtml(sale.paymentMethod || "Cash")}</p>
+    ${sale.discount && sale.discount > 0 ? `<p class="text-[11px] text-red-600"><span class="bold">Discount:</span> -৳${sale.discount.toLocaleString("en-BD",{minimumFractionDigits:2})} ${getDiscountLabel(sale)}</p>` : ""}
     ${sale.balance > 0 ? `<p class="text-[11px] text-accent-700"><span class="bold">Balance:</span> ৳${sale.balance.toLocaleString("en-BD",{minimumFractionDigits:2})}</p>` : ""}
   </div>
-  <div class="line" />
+  <div class="line"></div>
   <div class="items mb-3">
-    <div class="flex justify-between text-[11px] bold mb-1">
+    <div class="item-row bold">
       <span class="item-name">Item</span>
       <span class="item-qty-price">Qty × Price</span>
     </div>
     ${sale.items?.map(item => `
       <div class="item-row">
-        <span class="item-name text-[11px]">${item.name}</span>
+        <span class="item-name text-[11px]">${escapeHtml(item.name)}</span>
         <span class="item-qty-price text-[11px]">${item.quantity} × ৳${item.price.toLocaleString("en-BD",{minimumFractionDigits:2})}</span>
       </div>
     `).join("") || ""}
   </div>
-  <div class="line" />
+  <div class="line"></div>
   <div class="mb-2">
     <div class="row text-[12px]"><span>Subtotal</span><span class="bold">৳${(sale.subtotal || sale.total).toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>
-    ${sale.discount && sale.discount > 0 ? `<div class="row text-[12px] text-red-600"><span>Discount ${sale.discountType === "percentage" ? `(${sale.discountValue}%)` : ""}</span><span class="bold">-৳${sale.discount.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
+    ${sale.discount && sale.discount > 0 ? `<div class="row text-[12px] text-red-600"><span>Discount ${getDiscountLabel(sale)}</span><span class="bold">-৳${sale.discount.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
     ${sale.tax && sale.tax > 0 ? `<div class="row text-[12px]"><span>Tax</span><span class="bold">৳${sale.tax.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
     <div class="row text-[13px] bold mt-1"><span>TOTAL</span><span>৳${sale.total.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>
     ${sale.amountPaid && sale.amountPaid !== sale.total ? `<div class="row text-[12px] mt-1"><span>Paid</span><span class="bold">৳${sale.amountPaid.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
@@ -69,7 +87,7 @@ const FALLBACK_THERMAL_HTML = (sale) => `
     ${sale.balance && sale.balance > 0 ? `<div class="row text-[12px] text-accent-700"><span>Balance (Due)</span><span class="bold">৳${sale.balance.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
     ${sale.debtRepayment && sale.debtRepayment > 0 ? `<div class="row text-[12px] text-green-700"><span>Debt Paid</span><span class="bold">-৳${sale.debtRepayment.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
   </div>
-  <div class="line" />
+  <div class="line"></div>
   <div class="center text-[11px] text-gray-600 mt-3">
     <p class="bold">Thank you for shopping with us!</p>
     <p class="mt-1">Goods sold are not returnable</p>
@@ -86,13 +104,14 @@ const FALLBACK_A4_HTML = (sale) => `
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Receipt - ${sale.saleNumber || sale.id?.slice(-8).toUpperCase()}</title>
+  <title>Receipt - ${escapeHtml(sale.saleNumber || sale.id?.slice(-8).toUpperCase())}</title>
   <style>
     @media print {
       @page { margin: 20mm; size: A4; }
       body { margin: 0; padding: 0; }
       .no-print { display: none !important; }
     }
+    * { box-sizing: border-box; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: #1a1a1a; max-width: 210mm; margin: 0 auto; padding: 20mm; }
     .header { text-align: center; border-bottom: 2px solid #1a1a1a; padding-bottom: 20px; margin-bottom: 24px; }
     .company-name { font-size: 28px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; }
@@ -124,19 +143,19 @@ const FALLBACK_A4_HTML = (sale) => `
   </header>
   <div class="sale-info">
     <div>
-      <p><span class="label">Sale Number:</span> <span class="value">${sale.saleNumber || sale.id?.slice(-8).toUpperCase()}</span></p>
+      <p><span class="label">Sale Number:</span> <span class="value">${escapeHtml(sale.saleNumber || sale.id?.slice(-8).toUpperCase())}</span></p>
       <p><span class="label">Date:</span> <span class="value">${new Date(sale.createdAt || sale.date).toLocaleString("en-GB", {day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}</span></p>
     </div>
     <div>
-      <p><span class="label">Cashier:</span> <span class="value">${sale.cashier || "POS User"}</span></p>
-      <p><span class="label">Payment Method:</span> <span class="value">${sale.paymentMethod || "Cash"}</span></p>
+      <p><span class="label">Cashier:</span> <span class="value">${escapeHtml(sale.cashier || "POS User")}</span></p>
+      <p><span class="label">Payment Method:</span> <span class="value">${escapeHtml(sale.paymentMethod || "Cash")}</span></p>
     </div>
     ${sale.customerName ? `
     <div>
-      <p><span class="label">Customer:</span> <span class="value">${sale.customerName}</span></p>
-      <p><span class="label">Phone:</span> <span class="value">${sale.customerPhone || "N/A"}</span></p>
-      ${sale.customerEmail ? `<p><span class="label">Email:</span> <span class="value">${sale.customerEmail}</span></p>` : ""}
-      ${sale.customerAddress ? `<p><span class="label">Address:</span> <span class="value">${sale.customerAddress}</span></p>` : ""}
+      <p><span class="label">Customer:</span> <span class="value">${escapeHtml(sale.customerName)}</span></p>
+      <p><span class="label">Phone:</span> <span class="value">${escapeHtml(sale.customerPhone || "N/A")}</span></p>
+      ${sale.customerEmail ? `<p><span class="label">Email:</span> <span class="value">${escapeHtml(sale.customerEmail)}</span></p>` : ""}
+      ${sale.customerAddress ? `<p><span class="label">Address:</span> <span class="value">${escapeHtml(sale.customerAddress)}</span></p>` : ""}
     </div>` : ""}
   </div>
   <table class="items-table" role="table">
@@ -151,7 +170,7 @@ const FALLBACK_A4_HTML = (sale) => `
     <tbody>
       ${sale.items?.map(item => `
         <tr>
-          <td>${item.name}</td>
+          <td>${escapeHtml(item.name)}</td>
           <td class="text-center">${item.quantity}</td>
           <td class="text-right">৳${item.price.toLocaleString("en-BD",{minimumFractionDigits:2})}</td>
           <td class="text-right font-medium">৳${(item.price * item.quantity).toLocaleString("en-BD",{minimumFractionDigits:2})}</td>
@@ -161,7 +180,7 @@ const FALLBACK_A4_HTML = (sale) => `
   </table>
   <div class="totals">
     <div class="row"><span>Subtotal</span><span>৳${(sale.subtotal || sale.total).toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>
-    ${sale.discount && sale.discount > 0 ? `<div class="row text-red-600"><span>Discount ${sale.discountType === "percentage" ? `(${sale.discountValue}%)` : ""}</span><span>-৳${sale.discount.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
+    ${sale.discount && sale.discount > 0 ? `<div class="row text-red-600"><span>Discount ${getDiscountLabel(sale)}</span><span>-৳${sale.discount.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
     ${sale.tax && sale.tax > 0 ? `<div class="row"><span>Tax</span><span>৳${sale.tax.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
     <div class="row total"><span>TOTAL</span><span>৳${sale.total.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>
     ${sale.amountPaid && sale.amountPaid !== sale.total ? `<div class="row"><span>Amount Paid</span><span>৳${sale.amountPaid.toLocaleString("en-BD",{minimumFractionDigits:2})}</span></div>` : ""}
@@ -185,48 +204,71 @@ function getFallbackHtml(format, sale) {
   return format === "a4" ? FALLBACK_A4_HTML(sale) : FALLBACK_THERMAL_HTML(sale);
 }
 
+function validateCompiledReceipt(html) {
+  if (typeof html !== "string") {
+    throw new Error("The receipt template response was not HTML.");
+  }
+  if (/\{\{[\s\S]*?\}\}/.test(html)) {
+    throw new Error("The saved receipt template contains unrendered fields.");
+  }
+  return html;
+}
+
 function printHtml(html, format) {
-  const width = format === "a4" ? 800 : 400;
-  const height = format === "a4" ? 1000 : 600;
+  const width = format === "a4" ? 900 : 420;
+  const height = format === "a4" ? 1000 : 700;
   const printWindow = window.open("", "_blank", `width=${width},height=${height}`);
+  if (!printWindow) {
+    throw new Error("Your browser blocked the print window. Allow pop-ups and try again.");
+  }
+
+  printWindow.onafterprint = () => printWindow.close();
+  printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
   printWindow.focus();
   printWindow.print();
-  printWindow.onafterprint = () => printWindow.close();
 }
 
-export function ReceiptModal({ sale, format = "thermal", onClose, onPrint }) {
+export function ReceiptModal({ sale, format = "thermal", onClose, onFormatChange }) {
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [printError, setPrintError] = useState(null);
 
   useEffect(() => {
+    let isActive = true;
     const fetchTemplate = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const templateType = getTemplateType(format);
-        const html = await templatesApi.getCompiled(templateType, sale);
-        setHtml(html);
+        const templateHtml = await templatesApi.getCompiled(templateType, sale);
+        if (isActive) setHtml(validateCompiledReceipt(templateHtml));
       } catch (err) {
         console.warn("Failed to fetch template from backend, using fallback:", err);
-        setHtml(getFallbackHtml(format, sale));
-        setError("Using fallback template (backend unavailable)");
+        if (isActive) {
+          setHtml(getFallbackHtml(format, sale));
+          setError("Showing the built-in receipt because the saved template could not be loaded or rendered.");
+        }
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     };
 
     fetchTemplate();
-
-    if (onPrint) {
-      const timer = setTimeout(() => onPrint(), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [sale, format, onPrint]);
+    return () => {
+      isActive = false;
+    };
+  }, [sale, format]);
 
   const handlePrint = () => {
-    if (html) {
+    if (!html) return;
+    try {
       printHtml(html, format);
+      setPrintError(null);
+    } catch (err) {
+      setPrintError(err.message || "Could not open the print dialog.");
     }
   };
 
@@ -250,51 +292,87 @@ export function ReceiptModal({ sale, format = "thermal", onClose, onPrint }) {
       aria-labelledby={format === "a4" ? "a4-receipt-title" : "thermal-receipt-title"}
     >
       <div
-        className={format === "a4" 
-          ? "w-full max-w-[210mm] bg-white shadow-2xl rounded-xl my-8" 
-          : "w-full max-w-90 bg-white shadow-2xl rounded-lg overflow-hidden"
+        className={format === "a4"
+          ? "my-8 w-full max-w-[210mm] overflow-hidden rounded-xl bg-white shadow-2xl"
+          : "w-full max-w-[380px] overflow-hidden rounded-xl bg-white shadow-2xl"
         }
-        style={format !== "a4" ? { width: `${THERMAL_WIDTH}px` } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 no-print ${format === "a4" ? "rounded-t-xl" : ""}`}>
-          <h2 id={format === "a4" ? "a4-receipt-title" : "thermal-receipt-title"} className="font-bold text-gray-800">
-            {format === "a4" ? "A4 Receipt" : "POS Thermal Receipt (80mm)"}
-          </h2>
-          <div className="flex items-center gap-2">
-            {error && (
-              <span className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-amber-800 bg-amber-100 rounded-lg">
-                <AlertTriangle className="h-3 w-3" />
-                {error}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition"
-            >
-              <Printer className="h-3.5 w-3.5" /> Print
-            </button>
+        <div className="no-print border-b border-gray-200 bg-gray-50 px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id={format === "a4" ? "a4-receipt-title" : "thermal-receipt-title"} className="font-bold text-gray-800">
+              Print receipt
+            </h2>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition"
+              className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-800"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              aria-pressed={format !== "a4"}
+              onClick={() => {
+                setPrintError(null);
+                onFormatChange?.("thermal");
+              }}
+              className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                format !== "a4"
+                  ? "border-primary-600 bg-primary-50 text-primary-900"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              POS Machine (80mm)
+            </button>
+            <button
+              type="button"
+              aria-pressed={format === "a4"}
+              onClick={() => {
+                setPrintError(null);
+                onFormatChange?.("a4");
+              }}
+              className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                format === "a4"
+                  ? "border-primary-600 bg-primary-50 text-primary-900"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              A4
+            </button>
+          </div>
+          {(error || printError) && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-800" role="status">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {printError || error}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-primary-700"
+          >
+            <Printer className="h-4 w-4" />
+            Print {format === "a4" ? "A4" : "POS machine"} receipt
+          </button>
         </div>
 
-        <div
-          className={format === "a4" ? "p-8 md:p-12" : "p-4"}
-          style={{
-            fontFamily: format === "a4" ? "'Segoe UI', system-ui, sans-serif" : "'Courier New', monospace",
-            fontSize: format === "a4" ? "14px" : "12px",
-            lineHeight: format === "a4" ? "1.5" : "1.4",
-          }}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <div className="max-h-[72vh] overflow-auto bg-gray-200 p-3 sm:p-5">
+          <iframe
+            title={format === "a4" ? "A4 receipt preview" : "POS machine receipt preview"}
+            srcDoc={html}
+            sandbox=""
+            className="mx-auto block border-0 bg-white shadow-md"
+            style={{
+              width: format === "a4" ? "100%" : `${THERMAL_WIDTH}px`,
+              maxWidth: "100%",
+              height: format === "a4" ? "680px" : "560px",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -322,7 +400,6 @@ export function ReceiptButton({ sale, format = "thermal", children, className = 
           sale={sale}
           format={format}
           onClose={() => setShowReceipt(false)}
-          onPrint={() => {}}
         />
       )}
     </>

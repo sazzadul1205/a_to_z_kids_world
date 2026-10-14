@@ -4,6 +4,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import HeroSection from "./sections/HeroSection";
 import CategoriesSection from "./sections/CategoriesSection";
 import ProductsSection from "./sections/ProductsSection";
+import RecentOrdersSection from "./sections/RecentOrdersSection";
 import ProductModal from "./sections/ProductModal";
 import { useCart } from "../../context/cart/useCart";
 import { useCartNotice } from "../../context/cart/useCartNotice";
@@ -88,6 +89,8 @@ const Home = () => {
         onProductClick={setSelectedProduct}
         status={status === "error" ? "ready" : status}
       />
+
+      <RecentOrdersSection />
 
       <ProductModal
         product={selectedProduct}

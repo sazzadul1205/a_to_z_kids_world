@@ -148,6 +148,16 @@ export const ordersApi = {
       return res;
     });
   },
+  history: (params, signal) => api.get("/orders", { params, signal }),
+  // Public read: the storefront shows recent completed sales so visitors
+  // can see the shop is active. No auth required.
+  recent: (limit = 10, signal) =>
+    api.get("/orders/recent", { params: { limit }, signal }).then((res) => {
+      if (res && typeof res === "object" && Array.isArray(res.orders)) {
+        return res.orders;
+      }
+      return res;
+    }),
   create: (data) => api.post("/orders", data),
   updateStatus: (id, status) => api.put(`/orders/${id}`, { status }),
   remove: (id) => api.delete(`/orders/${id}`),
@@ -163,12 +173,7 @@ export const usersApi = {
 export const customersApi = {
   list: (params, signal) => {
     const queryParams = { ...(params || {}), limit: params?.limit || 100 };
-    return api.get("/customers", { params: queryParams, signal }).then((res) => {
-      if (res && typeof res === "object" && Array.isArray(res.customers)) {
-        return res.customers;
-      }
-      return res;
-    });
+    return api.get("/customers", { params: queryParams, signal });
   },
   search: (query, signal) => api.get("/customers/search", { params: { q: query }, signal }),
   getDetail: (phone, signal) => api.get(`/customers/${encodeURIComponent(phone)}`, { signal }),
@@ -198,6 +203,7 @@ export const purchaseOrdersApi = {
     });
   },
   get: (id, signal) => api.get(`/purchase-orders/${id}`, { signal }),
+  getProducts: () => api.get("/purchase-orders/products"),
   create: (data) => api.post("/purchase-orders", data),
   updateStatus: (id, status) => api.put(`/purchase-orders/${id}`, { status }),
   receive: (id, items) => api.post(`/purchase-orders/${id}/receive`, { items }),

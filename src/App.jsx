@@ -21,6 +21,7 @@ import Reviews from "./Backend/Pages/Reviews/Reviews";
 import Orders from "./Backend/Pages/Orders/Orders";
 import Users from "./Backend/Pages/Users/Users";
 import Pos from "./Backend/Pages/Pos/Pos";
+import SalesHistory from "./Backend/Pages/Pos/SalesHistory";
 import Inventory from "./Backend/Pages/Inventory/Inventory";
 import PurchaseOrders from "./Backend/Pages/PurchaseOrders/PurchaseOrders";
 import ExpenseCategories from "./Backend/Pages/ExpenseCategories/ExpenseCategories";
@@ -52,6 +53,7 @@ function App() {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="pos" element={<Pos />} />
+                <Route path="sales-history" element={<SalesHistory />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="purchase-orders" element={<PurchaseOrders />} />
                 <Route path="products" element={<Products />} />

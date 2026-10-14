@@ -110,6 +110,24 @@ const en = {
       emptyMessage: "Try another category or browse the full collection.",
     },
 
+    recentOrders: {
+      eyebrow: "Latest from the shop",
+      title: "Recent POS orders",
+      countSuffix: "sales",
+      saleLabel: "Sale",
+      itemOne: "item",
+      itemOther: "items",
+      moreItems: "+{n} more",
+      emptyTitle: "No sales to show yet",
+      emptyMessage: "Completed POS sales will appear here once the shop is active.",
+      paymentLabels: {
+        cash: "Cash",
+        card: "Card",
+        mobile: "Mobile",
+        due: "Due",
+      },
+    },
+
     shop: {
       eyebrow: "Explore the collection",
       title: "Find your next favorite",

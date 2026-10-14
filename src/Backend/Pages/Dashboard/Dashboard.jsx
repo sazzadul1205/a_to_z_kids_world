@@ -41,8 +41,8 @@ const Dashboard = () => {
     (order) => order.status !== "Cancelled" && order.status !== "Completed",
   );
   const revenue = orders
-    .filter((order) => order.status !== "Cancelled")
-    .reduce((total, order) => total + Number(order.totalPrice ?? 0), 0);
+    .filter((order) => order.status !== "Cancelled" && order.status !== "Refunded")
+    .reduce((total, order) => total + Number(order.total ?? order.totalPrice ?? 0), 0);
 
   const productNames = new Map(products.map((product) => [String(product._id), product.name]));
 
@@ -108,14 +108,14 @@ const Dashboard = () => {
         </section>
 
         <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="text-lg font-black text-text">Latest orders</h2>
+          <h2 className="text-lg font-black text-text">Recent Manual Sales</h2>
           <p className="mt-1 text-sm text-text-muted">
-            Orders recorded by staff from WhatsApp requests.
+            The latest sales recorded from Manual Sales.
           </p>
 
           <div className="mt-4 space-y-3">
             {orders.length === 0 ? (
-              <AdminEmpty title="No orders yet" message="Staff-recorded orders will appear here." />
+              <AdminEmpty title="No sales yet" message="Orders recorded from Manual Sales will appear here." />
             ) : (
               [...orders]
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -123,19 +123,28 @@ const Dashboard = () => {
                 .map((order) => (
                   <div
                     key={order._id}
-                    className="flex items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-bold text-text">
-                        {productNames.get(String(order.productId)) || "Removed product"}
+                        {order.items?.[0]?.productName ||
+                          productNames.get(String(order.productId)) ||
+                          "Removed product"}
+                        {(order.items?.length || 0) > 1 && (
+                          <span className="ml-2 text-xs font-normal text-text-muted">
+                            +{order.items.length - 1} more
+                          </span>
+                        )}
                       </p>
                       <p className="text-xs text-text-muted">
-                        {order.quantity} × {formatBDT(Number(order.totalPrice) / Math.max(order.quantity, 1))}
+                        {order.saleNumber || `#${order._id?.slice(-8)}`}
+                        {order.customerName && ` · ${order.customerName}`}
+                        {` · ${new Date(order.createdAt).toLocaleString()}`}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="text-sm font-black text-secondary-1000">
-                        {formatBDT(order.totalPrice)}
+                        {formatBDT(order.total ?? order.totalPrice ?? 0)}
                       </span>
                       <StatusPill value={order.status} />
                     </div>
@@ -145,10 +154,10 @@ const Dashboard = () => {
           </div>
 
           <Link
-            to="/admin/orders"
+            to="/admin/sales-history"
             className="mt-4 inline-block text-sm font-bold text-primary-700 hover:text-primary-900"
           >
-            Manage orders →
+            Review sales history →
           </Link>
         </section>
       </div>

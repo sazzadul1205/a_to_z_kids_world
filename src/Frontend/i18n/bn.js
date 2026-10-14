@@ -108,6 +108,24 @@ const bn = {
       emptyMessage: "অন্য একটি ক্যাটাগরি বেছে নিন বা পুরো সংগ্রহ দেখুন।",
     },
 
+    recentOrders: {
+      eyebrow: "দুকদুকের সর্বশেষ",
+      title: "সাম্পত্তিক POS অর্ডার",
+      countSuffix: "বিক্রয়",
+      saleLabel: "বিক্রয়",
+      itemOne: "টি পণ্য",
+      itemOther: "টি পণ্য",
+      moreItems: "+{n} আরও",
+      emptyTitle: "প্রদর্শনের জন্য কোনো বিক্রয় নেই",
+      emptyMessage: "স্টোর সক্রিয় হওয়ার পর সম্পূর্ণ POS বিক্রয় এখানে দেখা যাবে।",
+      paymentLabels: {
+        cash: "নগদ",
+        card: "কার্ড",
+        mobile: "মোবাইল",
+        due: "বকেয়",
+      },
+    },
+
     shop: {
       eyebrow: "সংগ্রহ দেখে নিন",
       title: "আপনার পরবর্তী পছন্দ খুঁজে নিন",

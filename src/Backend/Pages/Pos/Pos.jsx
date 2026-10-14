@@ -1,31 +1,28 @@
 import { useState, useMemo, useCallback } from "react";
 import {
   Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, Loader2, Save,
-  X, AlertCircle, Printer, FileText, Landmark, Mail, MapPin,
+  X, AlertCircle, Landmark, Mail, MapPin, ShoppingCart,
   User, Phone,
 } from "lucide-react";
 import { useCatalog } from "../../../Frontend/context/catalog/useCatalog";
 import { useOrderMutations, useOrdersQuery } from "../../../Frontend/hooks/useAdminQueries";
 import { formatBDT } from "../../../Frontend/lib/currency";
 import { confirmDialog, toastError, toastSuccess } from "../../../Frontend/lib/swal";
+import { useAuth } from "../../../Frontend/context/auth/useAuth";
 import { ReceiptModal } from "../../../Frontend/Components/Receipt";
 import {
   AdminEmpty,
   AdminError,
   AdminLoader,
-  StatCard,
   fieldClass,
-  labelClass,
   primaryButtonClass,
   ghostButtonClass,
-  dangerButtonClass,
 } from "../../admin-ui";
 
 const PAYMENT_METHODS = [
   { value: "cash", label: "Cash", icon: Banknote },
   { value: "card", label: "Card", icon: CreditCard },
   { value: "mobile", label: "Mobile Banking", icon: Smartphone },
-  { value: "due", label: "Due / Credit", icon: Landmark },
 ];
 
 const DISCOUNT_TYPES = [
@@ -33,10 +30,15 @@ const DISCOUNT_TYPES = [
   { value: "percentage", label: "Percentage" },
 ];
 
+const posFieldClass =
+  "w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text shadow-sm outline-none transition placeholder:text-text-muted focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10";
+const posLabelClass = "mb-1.5 block text-sm font-semibold text-text";
+
 const Pos = () => {
   const { products, status, error, reload } = useCatalog();
   const { data: orders, refetch } = useOrdersQuery();
-  const { create: createOrder, remove: deleteOrder } = useOrderMutations();
+  const { create: createOrder } = useOrderMutations();
+  const { user } = useAuth();
 
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -96,9 +98,14 @@ const Pos = () => {
 
   const amountDue = useMemo(() => {
     if (paymentMethod === "due") return cartTotal;
-    const paid = Number(amountPaid) || 0;
+    const paid = amountPaid.trim() ? Number(amountPaid) || 0 : cartTotal;
     return Math.max(0, cartTotal - paid);
   }, [cartTotal, amountPaid, paymentMethod]);
+
+  const changeDue = Math.max(
+    0,
+    (amountPaid.trim() ? Number(amountPaid) || 0 : cartTotal) - cartTotal,
+  );
 
   const addToCart = useCallback((productId) => {
     setCart((prev) => {
@@ -172,15 +179,10 @@ const Pos = () => {
       if (!confirmed) return;
     }
 
-    const paidAmount = paymentMethod === "due" ? 0 : Number(amountPaid) || cartTotal;
-    const effectiveDebtRepayment = paymentMethod !== "due"
-      ? Math.max(0, paidAmount - cartTotal)
-      : 0;
-
-    if (paymentMethod !== "due" && paidAmount < cartTotal) {
-      setFormError("Amount paid cannot be less than total for cash/card payments (unless paying off debt separately)");
-      return;
-    }
+    // The customer can pay whatever they want. Anything short of the total
+    // becomes a balance on the order — there is no separate "due" payment
+    // method to switch to.
+    const paidAmount = Number(amountPaid) || 0;
 
     setSubmitting(true);
     try {
@@ -194,7 +196,7 @@ const Pos = () => {
       });
 
       const order = await createOrder.mutateAsync({
-        userId: "pos-walkin",
+        userId: user?._id,
         items,
         customer: customer,
         customerName: customer.name.trim(),
@@ -202,15 +204,14 @@ const Pos = () => {
         customerEmail: customer.email.trim(),
         customerAddress: customer.address.trim(),
         paymentMethod,
-        discount: discountAmount,
+        discount: Number(discountValue) || 0,
         discountType,
         discountValue: Number(discountValue) || 0,
         tax: 0,
         amountPaid: paidAmount,
-        debtRepayment: effectiveDebtRepayment,
-        balance: paymentMethod === "due" ? cartTotal : Math.max(0, cartTotal - paidAmount + (effectiveDebtRepayment > 0 ? 0 : customerDebt)),
+        debtRepayment: 0,
+        balance: Math.max(0, cartTotal - paidAmount),
         notes: notes.trim(),
-        cashierId: "pos-user",
       });
 
       const saleData = {
@@ -237,7 +238,7 @@ const Pos = () => {
         customerDebt: order.customerDebt,
         debtRepayment: order.debtRepayment,
         balance: order.balance,
-        cashier: "POS User",
+        cashier: user?.name || "POS User",
         createdAt: order.createdAt,
       };
 
@@ -250,24 +251,6 @@ const Pos = () => {
       toastError(err.message);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleDeleteOrder = async (order) => {
-    const confirmed = await confirmDialog({
-      title: "Delete this order?",
-      text: "Stock will be returned to the product.",
-      confirmText: "Yes, delete",
-      danger: true,
-    });
-    if (!confirmed) return;
-
-    try {
-      await deleteOrder.mutateAsync(order._id);
-      toastSuccess("Order deleted and stock restored.");
-      refetch();
-    } catch (err) {
-      toastError(err.message);
     }
   };
 
@@ -312,8 +295,8 @@ const Pos = () => {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        <section className="lg:col-span-1 space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]">
+        <section className="space-y-6">
           <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black text-text">Product Catalogue</h2>
@@ -373,21 +356,31 @@ const Pos = () => {
           </div>
         </section>
 
-        <section className="lg:col-span-1 space-y-6">
-          <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm sticky top-24">
-            <h2 className="text-lg font-black text-text flex items-center justify-between">
-              Cart
-              <span className="text-sm font-normal text-text-muted">({cartItemsCount} items)</span>
-            </h2>
+        <section className="min-w-0">
+          <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5 lg:self-start">
+            <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <h2 className="text-xl font-black text-text">Your sale</h2>
+                <p className="mt-1 text-sm text-text-muted">Review items and enter payment details.</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-800">
+                {cartItemsCount} {cartItemsCount === 1 ? "item" : "items"}
+              </span>
+            </div>
 
             {cart.length === 0 ? (
-              <div className="mt-4 text-center py-12 text-text-muted">
-                <p className="font-semibold">Cart is empty</p>
-                <p className="mt-1 text-sm">Click products on the left to add them</p>
+              <div className="my-5 flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface-soft px-5 py-10 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-primary-700">
+                  <ShoppingCart className="h-6 w-6" />
+                </span>
+                <p className="mt-3 font-bold text-text">Your cart is empty</p>
+                <p className="mt-1 max-w-xs text-sm text-text-muted">
+                  Choose an in-stock product from the catalogue to start a sale.
+                </p>
               </div>
             ) : (
               <>
-                <div className="mt-4 space-y-3 max-h-[40vh] overflow-y-auto">
+                <div className="mt-4 max-h-[32vh] space-y-3 overflow-y-auto pr-1">
                   {cart.map((item) => {
                     const product = products.find((p) => p._id === item.productId);
                     if (!product) return null;
@@ -395,38 +388,54 @@ const Pos = () => {
                     return (
                       <div
                         key={product._id}
-                        className="flex flex-wrap items-center gap-3 rounded-xl bg-surface-soft px-3 py-2.5"
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-surface-soft p-3"
                       >
                         {product.image && (
-                          <img src={product.image} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                          <img src={product.image} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover" />
                         )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold text-text">{product.name}</p>
-                          <p className="truncate text-xs text-text-muted">{formatBDT(product.price)} each</p>
+                        <div className="flex min-w-0 items-center gap-3">
+                          {!product.image && (
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface text-primary-700">
+                              <ShoppingCart className="h-5 w-5" />
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-text">{product.name}</p>
+                            <p className="mt-0.5 truncate text-xs text-text-muted">
+                              {formatBDT(product.price)} each
+                            </p>
+                            <p className="mt-1 font-black text-text">{formatBDT(lineTotal)}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(product._id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                            className="rounded-lg border border-border bg-surface p-1.5 text-text-muted hover:bg-primary-50 hover:border-primary-300 disabled:opacity-50"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-10 text-center font-bold text-text">{item.quantity}</span>
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(product._id, item.quantity + 1)}
-                            disabled={item.quantity >= product.stock}
-                            className="rounded-lg border border-border bg-surface p-1.5 text-text-muted hover:bg-primary-50 hover:border-primary-300 disabled:opacity-50"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                          <span className="w-24 text-right font-bold text-text">{formatBDT(lineTotal)}</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center rounded-xl border border-border bg-surface p-1">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(product._id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              aria-label={`Remove one ${product.name}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition hover:bg-primary-50 hover:text-primary-800 disabled:opacity-40"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="min-w-8 text-center text-sm font-bold text-text">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(product._id, item.quantity + 1)}
+                              disabled={item.quantity >= product.stock}
+                              aria-label={`Add one ${product.name}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition hover:bg-primary-50 hover:text-primary-800 disabled:opacity-40"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
                           <button
                             type="button"
                             onClick={() => removeFromCart(product._id)}
-                            className="text-primary-700 hover:text-primary-900"
+                            aria-label={`Remove ${product.name} from cart`}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-muted transition hover:bg-primary-50 hover:text-primary-800"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -436,31 +445,32 @@ const Pos = () => {
                   })}
                 </div>
 
-                <div className="mt-4 border-t border-border pt-4 space-y-2">
+                <div className="mt-4 space-y-2 rounded-2xl bg-surface-soft p-4">
                   <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span className="font-bold">{formatBDT(cartSubtotal)}</span>
+                    <span className="text-text-muted">Subtotal</span>
+                    <span className="font-semibold text-text">{formatBDT(cartSubtotal)}</span>
                   </div>
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-sm text-primary-700">
+                    <div className="flex justify-between text-sm text-primary-800">
                       <span>Discount {discountType === "percentage" ? `(${Number(discountValue || 0)}%)` : ""}</span>
                       <span className="font-bold">-{formatBDT(discountAmount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-lg font-black border-t border-border pt-2">
-                    <span>Total</span>
-                    <span>{formatBDT(cartTotal)}</span>
+                  <div className="flex items-end justify-between gap-3 border-t border-border pt-3">
+                    <span className="font-bold text-text">Total due</span>
+                    <span className="text-2xl font-black text-text">{formatBDT(cartTotal)}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <span className={labelClass}>Discount</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
+                <div className="mt-5 space-y-5">
+                  <div className="rounded-2xl border border-border p-4">
+                    <label className={posLabelClass}>Discount</label>
+                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] gap-2">
                       <select
                         value={discountType}
                         onChange={(e) => setDiscountType(e.target.value)}
-                        className={fieldClass}
+                        aria-label="Discount type"
+                        className={posFieldClass}
                       >
                         {DISCOUNT_TYPES.map((type) => (
                           <option key={type.value} value={type.value}>{type.label}</option>
@@ -469,62 +479,75 @@ const Pos = () => {
                       <input
                         type="number"
                         min="0"
-                        step={discountType === "percentage" ? "0.01" : "0.01"}
+                        step="0.01"
                         max={discountType === "percentage" ? "100" : undefined}
                         value={discountValue}
                         onChange={(e) => setDiscountValue(e.target.value)}
                         placeholder={discountType === "percentage" ? "10%" : "৳100"}
-                        className={`${fieldClass} w-32`}
+                        aria-label={discountType === "percentage" ? "Discount percentage" : "Discount amount"}
+                        className={posFieldClass}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <span className={labelClass}>Payment Method</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
+                    <p className={posLabelClass}>Payment method</p>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
                       {PAYMENT_METHODS.map((method) => (
                         <button
                           key={method.value}
                           type="button"
                           onClick={() => setPaymentMethod(method.value)}
-                          className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
+                          aria-pressed={paymentMethod === method.value}
+                          className={`flex min-h-16 min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-center text-xs font-bold transition sm:flex-row sm:px-3 sm:text-sm ${
                             paymentMethod === method.value
-                              ? "border-brand-fill bg-brand-fill/10 text-brand-fill"
-                              : "border-border bg-surface text-text hover:border-primary-300"
+                              ? "border-brand-fill bg-brand-fill/10 text-primary-800 ring-2 ring-brand-fill/10"
+                              : "border-border bg-surface text-text hover:border-primary-300 hover:bg-surface-soft"
                           }`}
                         >
-                          <method.icon className="h-4 w-4" />
-                          {method.label}
+                          <method.icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{method.label}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div>
-                    <span className={labelClass}>Customer Name</span>
-                    <div className="relative mt-1">
-                      <input
-                        type="text"
-                        value={customer.name}
-                        onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                        placeholder="Walk-in customer"
-                        className={fieldClass}
-                      />
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                  <div className="rounded-2xl border border-border p-4">
+                    <div className="mb-3">
+                      <h3 className="font-bold text-text">Customer details</h3>
+                      <p className="mt-0.5 text-xs text-text-muted">Optional for walk-in sales.</p>
                     </div>
-                  </div>
-
-                  <div>
-                    <span className={labelClass}>Phone Number</span>
-                    <div className="relative mt-1">
-                      <input
-                        type="tel"
-                        value={customer.phone}
-                        onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-                        placeholder="+8801XXXXXXXXX"
-                        className={fieldClass}
-                      />
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="pos-customer-name" className={posLabelClass}>Customer name</label>
+                        <div className="relative">
+                          <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                          <input
+                            id="pos-customer-name"
+                            type="text"
+                            autoComplete="name"
+                            value={customer.name}
+                            onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                            placeholder="Walk-in customer"
+                            className={`${posFieldClass} pl-10`}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="pos-customer-phone" className={posLabelClass}>Phone number</label>
+                        <div className="relative">
+                          <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                          <input
+                            id="pos-customer-phone"
+                            type="tel"
+                            autoComplete="tel"
+                            value={customer.phone}
+                            onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                            placeholder="+8801XXXXXXXXX"
+                            className={`${posFieldClass} pl-10`}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -541,62 +564,83 @@ const Pos = () => {
                     </div>
                   )}
 
-                  <div>
-                    <span className={labelClass}>Email</span>
-                    <div className="relative mt-1">
-                      <input
-                        type="email"
-                        value={customer.email}
-                        onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                        placeholder="customer@example.com"
-                        className={fieldClass}
-                      />
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="pos-customer-email" className={posLabelClass}>Email</label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                        <input
+                          id="pos-customer-email"
+                          type="email"
+                          autoComplete="email"
+                          value={customer.email}
+                          onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                          placeholder="customer@example.com"
+                          className={`${posFieldClass} pl-10`}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="pos-customer-address" className={posLabelClass}>Address</label>
+                      <div className="relative">
+                        <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                        <input
+                          id="pos-customer-address"
+                          type="text"
+                          autoComplete="street-address"
+                          value={customer.address}
+                          onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                          placeholder="Street, area, city"
+                          className={`${posFieldClass} pl-10`}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div>
-                    <span className={labelClass}>Address</span>
-                    <div className="relative mt-1">
-                      <textarea
-                        rows={2}
-                        value={customer.address}
-                        onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                        placeholder="123, Main Road, Dhaka..."
-                        className={fieldClass}
-                      />
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-text-muted" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className={labelClass}>Notes</span>
+                    <label htmlFor="pos-sale-notes" className={posLabelClass}>Sale notes</label>
                     <textarea
+                      id="pos-sale-notes"
                       rows={2}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Gift wrap, special instructions..."
-                      className={fieldClass}
+                      className={`${posFieldClass} min-h-20 resize-y`}
                     />
                   </div>
 
                   {paymentMethod !== "due" && (
-                    <div>
-                      <span className={labelClass}>Amount Paid {customerDebt > 0 && <span className="text-xs text-text-muted">(excess reduces debt)</span>}</span>
+                    <div className="rounded-2xl border border-border bg-surface-soft p-4">
+                      <label htmlFor="pos-amount-paid" className={posLabelClass}>
+                        Amount received
+                        {customerDebt > 0 && (
+                          <span className="ml-1 text-xs font-normal text-text-muted">
+                            (extra payment reduces debt)
+                          </span>
+                        )}
+                      </label>
                       <input
+                        id="pos-amount-paid"
                         type="number"
                         min="0"
                         step="0.01"
+                        inputMode="decimal"
                         value={amountPaid}
                         onChange={(e) => setAmountPaid(e.target.value)}
-                        placeholder={formatBDT(cartTotal)}
-                        className={fieldClass}
+                        placeholder="Leave blank to pay total"
+                        className={`${posFieldClass} text-base font-semibold`}
                       />
+                      <div className="mt-3 flex flex-wrap justify-between gap-2 text-sm">
+                        <span className="text-text-muted">
+                          {amountDue > 0 ? `Balance remaining: ${formatBDT(amountDue)}` : "Paid in full"}
+                        </span>
+                        <span className="font-semibold text-text">Change: {formatBDT(changeDue)}</span>
+                      </div>
                       <p className="mt-1 text-xs text-text-muted">
-                        Change: {formatBDT(Math.max(0, (Number(amountPaid) || 0) - cartTotal))}
+                        Leave blank to record exact payment of {formatBDT(cartTotal)}.
                         {customerDebt > 0 && Number(amountPaid || 0) > cartTotal && (
-                          <span className="block text-accent-800 font-bold">
-                            Debt reduction: {formatBDT(Math.max(0, (Number(amountPaid) || 0) - cartTotal))}
+                          <span className="mt-1 block font-semibold text-accent-800">
+                            Debt reduction: {formatBDT(changeDue)}
                           </span>
                         )}
                       </p>
@@ -612,12 +656,12 @@ const Pos = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  <div className="grid gap-2">
                     <button
                       type="button"
                       onClick={handleSubmit}
                       disabled={submitting || cart.length === 0}
-                      className={`${primaryButtonClass} flex-1 py-3 text-lg`}
+                      className={`${primaryButtonClass} min-h-14 w-full justify-between px-5 py-3 text-base sm:text-lg`}
                     >
                       {submitting ? (
                         <>
@@ -626,36 +670,18 @@ const Pos = () => {
                         </>
                       ) : (
                         <>
-                          <Save className="h-5 w-5" />
-                          Complete Sale - {formatBDT(cartTotal)}
-                          {paymentMethod === "due" && amountDue > 0 && (
-                            <span className="ml-2 text-accent-200">({formatBDT(amountDue)} due)</span>
-                          )}
+                          <span className="inline-flex items-center gap-2">
+                            <Save className="h-5 w-5" />
+                            Complete sale
+                          </span>
+                          <span className="font-black">{formatBDT(cartTotal)}</span>
                         </>
                       )}
                     </button>
-                    {lastSale && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setReceiptFormat("thermal")}
-                          className={`${ghostButtonClass} flex-1`}
-                        >
-                          <Printer className="h-4 w-4" /> Thermal
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setReceiptFormat("a4")}
-                          className={`${ghostButtonClass} flex-1`}
-                        >
-                          <FileText className="h-4 w-4" /> A4
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   {cart.length > 0 && (
-                    <button type="button" onClick={clearCart} className={ghostButtonClass} style={{ width: "100%" }}>
+                    <button type="button" onClick={clearCart} className={`${ghostButtonClass} w-full`}>
                       <X className="h-4 w-4" /> Clear Cart
                     </button>
                   )}
@@ -666,95 +692,12 @@ const Pos = () => {
         </section>
       </div>
 
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-text">
-            Recent POS Orders <span className="text-text-muted">({orders?.length || 0})</span>
-          </h2>
-          <div className="flex items-center gap-3">
-            <StatCard label="Today's Sales" value={formatBDT(
-              orders?.filter((o) => new Date(o.createdAt).toDateString() === new Date().toDateString())
-                .reduce((sum, o) => sum + (o.total || o.totalPrice || 0), 0) || 0
-            )} tone="primary" />
-            <StatCard label="Today's Orders" value={
-              orders?.filter((o) => new Date(o.createdAt).toDateString() === new Date().toDateString()).length || 0
-            } tone="accent" />
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {(orders?.length || 0) === 0 ? (
-            <AdminEmpty title="No POS orders yet" message="Completed sales will appear here." />
-          ) : (
-            <>
-              {[...orders]
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 20)
-                   .map((order) => {
-                   const firstItem = order.items?.[0];
-                   const product = firstItem ? products.find((p) => p._id === firstItem.productId) : null;
-                   const itemCount = order.items?.length || 1;
-                   const orderTotal = order.total || order.totalPrice || 0;
-                   const orderPaid = order.amountPaid || 0;
-                   const outstanding = Math.max(0, orderTotal - orderPaid);
-                   const isDue = order.paymentMethod === "due";
-                   return (
-                     <div
-                       key={order._id}
-                       className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-soft px-4 py-3"
-                     >
-                     <div className="flex min-w-0 items-center gap-3">
-                       {product?.image && (
-                         <img src={product.image} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
-                       )}
-                       <div className="min-w-0">
-                         <p className="truncate font-bold text-text flex items-center gap-2">
-                           {product?.name || firstItem?.productName || "Removed product"}
-                           {itemCount > 1 && <span className="ml-2 text-xs text-text-muted">+{itemCount - 1} more</span>}
-                           {isDue && (
-                             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-accent-100 text-accent-900">
-                             <Landmark className="h-3 w-3" /> Due
-                           </span>
-                           )}
-                         </p>
-                         <p className="truncate text-xs text-text-muted">
-                           {formatBDT(orderTotal)} ·{" "}
-                           {new Date(order.createdAt).toLocaleString()}
-                         </p>
-                         <p className="truncate text-xs text-text-muted">
-                           {order.saleNumber ? `Sale: ${order.saleNumber}` : `ID: ${order._id?.slice(-8)}`}
-                           {order.customerName && ` · ${order.customerName}`}
-                           {outstanding > 0 && ` · ${formatBDT(outstanding)} outstanding`}
-                         </p>
-                       </div>
-                     </div>
-
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      <span className="text-base font-black text-secondary-1000">
-                        {formatBDT(order.total || order.totalPrice)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteOrder(order)}
-                        className={dangerButtonClass}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-      </section>
-
       {lastSale && (
         <ReceiptModal
           sale={lastSale}
           format={receiptFormat}
           onClose={() => setLastSale(null)}
-          onPrint={() => {}}
+          onFormatChange={setReceiptFormat}
         />
       )}
     </div>

@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 import { reportsApi } from "../../../Frontend/lib/api";
 import { formatBDT } from "../../../Frontend/lib/currency";
-import { AdminHeader, AdminLoader, AdminError, StatCard } from "../../admin-ui";
+import { AdminEmpty, AdminHeader, AdminLoader, AdminError, StatCard } from "../../admin-ui";
 
 const SalesReport = () => {
 
   const {
     data: dashboard,
-    status,
+    isPending,
     error,
     refetch,
   } = useQuery({
@@ -17,7 +17,7 @@ const SalesReport = () => {
     staleTime: 0,
   });
 
-  if (status === "loading") return <AdminLoader label="Loading analytics..." />;
+  if (isPending) return <AdminLoader label="Loading sales report..." />;
 
   return (
     <div className="space-y-8">
@@ -38,7 +38,7 @@ const SalesReport = () => {
             <h2 className="text-lg font-black text-text">Recent Orders</h2>
             <div className="mt-4 space-y-3">
               {(dashboard.recentOrders || []).length === 0 ? (
-                <p className="text-sm text-text-muted">No recent orders.</p>
+                <AdminEmpty title="No sales in this period" message="Completed and due sales will appear here once recorded." />
               ) : (
                 dashboard.recentOrders.map((order) => (
                   <div
@@ -62,7 +62,7 @@ const SalesReport = () => {
             <h2 className="text-lg font-black text-text">Top Products</h2>
             <div className="mt-4 space-y-3">
               {(dashboard.topProducts || []).length === 0 ? (
-                <p className="text-sm text-text-muted">No product data yet.</p>
+                <AdminEmpty title="No product sales yet" message="Products sold during this period will appear here." />
               ) : (
                 dashboard.topProducts.map((item) => (
                   <div

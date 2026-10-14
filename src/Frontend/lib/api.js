@@ -116,12 +116,7 @@ export const productsApi = {
 export const inventoryApi = {
   list: (params, signal) => {
     const queryParams = { ...(params || {}), limit: params?.limit || 100 };
-    return api.get("/inventory", { params: queryParams, signal }).then((res) => {
-      if (res && typeof res === "object" && Array.isArray(res.products)) {
-        return res.products;
-      }
-      return res;
-    });
+    return api.get("/inventory", { params: queryParams, signal });
   },
   getProduct: (id, signal) => api.get(`/inventory/${id}`, { signal }),
   adjustStock: (id, adjustment, reason, referenceId, referenceType) =>

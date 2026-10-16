@@ -6,7 +6,7 @@ import { useAuth } from "../../Frontend/context/auth/useAuth";
 
 // These must match the seeded admin credentials from backend/scripts/seed.js
 const QUICK_LOGINS = [
-  { label: "Store Admin", email: "admin@atozkids.world", password: "admin12345" },
+  { label: "Store Admin", email: "admin@atozkids.world", password: "@admin123456" },
 ];
 
 const AdminLogin = () => {
